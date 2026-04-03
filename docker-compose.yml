@@ -1,0 +1,80 @@
+services:
+
+  # ─── Base de données PostgreSQL ───────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: tournament_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-tournament_db}
+      POSTGRES_USER:     ${POSTGRES_USER:-tournament_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tournament_pass}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tournament_user} -d ${POSTGRES_DB:-tournament_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - tournament_net
+
+  # ─── pgAdmin (UI web pour la BDD) ─────────────────────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: tournament_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL:    ${PGADMIN_EMAIL:-admin@tournament.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - tournament_net
+    profiles:
+      - admin   # optionnel : docker compose --profile admin up
+
+  # ─── Application API TournamentManager ────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    container_name: tournament_api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-tournament_user}:${POSTGRES_PASSWORD:-tournament_pass}@db:5432/${POSTGRES_DB:-tournament_db}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - tournament_net
+    volumes:
+      - ./:/app
+    profiles:
+      - app   # optionnel : docker compose --profile app up
+
+volumes:
+  postgres_data:
+    name: tournament_postgres_data
+  pgadmin_data:
+    name: tournament_pgadmin_data
+
+networks:
+  tournament_net:
+    name: tournament_network
+    driver: bridge

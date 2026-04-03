@@ -1,0 +1,16 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "TournamentManager DB",
+      "Group": "Docker",
+      "Host": "db",
+      "Port": 5432,
+      "MaintenanceDB": "tournament_db",
+      "Username": "tournament_user",
+      "Password": "tournament_pass",
+      "SSLMode": "prefer",
+      "SavePassword": true,
+      "Favorite": true
+    }
+  }
+}

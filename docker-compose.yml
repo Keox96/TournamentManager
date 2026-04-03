@@ -11,7 +11,6 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tournament_pass}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     healthcheck:
@@ -56,6 +55,7 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-tournament_user}:${POSTGRES_PASSWORD:-tournament_pass}@db:5432/${POSTGRES_DB:-tournament_db}
+      PYTHONPATH: /tm_app/src
     ports:
       - "${API_PORT:-8000}:8000"
     depends_on:

@@ -1,0 +1,3 @@
+"""
+Application infrastructure module.
+"""

@@ -1,4 +1,4 @@
-from config import settings
+from src.config import settings
 
 from .app import app
 

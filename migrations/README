@@ -1,1 +1,75 @@
-Generic single-database configuration.
+Alembic migrations for TournamentManager
+========================================
+
+This directory contains Alembic migration scripts and the Alembic configuration
+for the TournamentManager project.
+
+Configuration
+-------------
+
+- `alembic.ini` is the Alembic configuration file.
+- `migrations/env.py` is the migration environment script.
+- `script_location` in `alembic.ini` points to `%(here)s/migrations`.
+- `sqlalchemy.url` in `alembic.ini` is the placeholder database URL used by
+  Alembic. Replace it with a real PostgreSQL URL when running migrations from
+  the command line, or configure the URL in `env.py` if your project loads it
+  dynamically.
+
+Recommended setup
+-----------------
+
+1. Install dependencies:
+
+   ```bash
+   uv sync
+   ```
+
+2. Ensure the database URL is configured in the environment or in
+   `alembic.ini`.
+
+3. Confirm the migration environment can import your application models.
+   The current `migrations/env.py` file uses `target_metadata = None`, so if you
+   want to use `--autogenerate` you should set `target_metadata` to your
+   SQLAlchemy metadata object in that script.
+
+Common Alembic commands
+-----------------------
+
+- Create a new revision:
+
+  ```bash
+  uv run alembic revision -m "Add new table" --autogenerate
+  ```
+
+- Apply the latest migrations:
+
+  ```bash
+  uv run alembic upgrade head
+  ```
+
+- Roll back the last migration:
+
+  ```bash
+  uv run alembic downgrade -1
+  ```
+
+- Show the current revision:
+
+  ```bash
+  uv run alembic current
+  ```
+
+- Show migration history:
+
+  ```bash
+  uv run alembic history --verbose
+  ```
+
+Tips
+----
+
+- Keep `alembic.ini` and `migrations/env.py` under version control.
+- Use descriptive revision messages when generating migrations.
+- Review generated migration scripts before applying them.
+- If your project requires custom database URL loading, adjust `env.py` to
+  read from your settings and avoid hardcoding credentials in `alembic.ini`.

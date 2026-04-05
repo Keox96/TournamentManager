@@ -1,9 +1,17 @@
+"""
+Application configuration and environment settings.
+"""
+
 import os
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """
+    Model representing a settings.
+    """
+
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=True,

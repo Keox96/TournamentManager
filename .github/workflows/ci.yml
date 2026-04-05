@@ -47,6 +47,21 @@ jobs:
     runs-on: ubuntu-latest
     needs: type-check
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: tournament_manager
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v6
 
@@ -56,5 +71,18 @@ jobs:
       - name: Install dependencies
         run: uv sync --group dev
 
+      - name: Wait for PostgreSQL          # ✅ attente explicite en plus du health check
+        run: |
+          until pg_isready -h 127.0.0.1 -p 5432 -U user; do
+            echo "Waiting for postgres..."
+            sleep 2
+          done
+
       - name: Run tests
         run: uv run pytest
+        env:
+          DATABASE_URL: postgresql://user:password@127.0.0.1:5432/tournament_manager  # ✅ 127.0.0.1 au lieu de localhost
+          APP_ENV: test
+          DB_POOL_MIN: 2
+          DB_POOL_MAX: 10
+          DB_POOL_TIMEOUT: 30

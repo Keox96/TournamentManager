@@ -1,0 +1,153 @@
+from typing import Any
+from uuid import UUID
+
+from fastapi import APIRouter, status
+
+from src.api.base_schema import PaginatedResponse, PaginationQuery, SearchQuery
+from src.api.dependencies import DbSession
+from src.api.exception_schema import ErrorResponse
+from src.api.v1.tournaments.tournaments_schema import (
+    TournamentCreateRequest,
+    TournamentFiltersQuery,
+    TournamentResponse,
+    TournamentSortQuery,
+)
+from src.domain.services.tournaments_service import TournamentService
+from src.infrastructure.database.repositories.tournaments_repository import (
+    SqlTournamentRepository,
+)
+
+common_responses: dict[int | str, dict[str, Any]] = {
+    status.HTTP_400_BAD_REQUEST: {"model": ErrorResponse},
+    status.HTTP_401_UNAUTHORIZED: {"model": ErrorResponse},
+    status.HTTP_409_CONFLICT: {"model": ErrorResponse},
+    status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ErrorResponse},
+    status.HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponse},
+}
+
+tournament_router = APIRouter(
+    prefix="/tournaments",
+    tags=["tournaments"],
+    responses=common_responses,
+)
+
+
+@tournament_router.get(
+    "/",
+    response_model=PaginatedResponse[TournamentResponse],
+    status_code=status.HTTP_200_OK,
+)
+async def list_tournaments(
+    session: DbSession,
+    filters: TournamentFiltersQuery,
+    sort: TournamentSortQuery,
+    pagination: PaginationQuery,
+    search: SearchQuery,
+) -> PaginatedResponse[TournamentResponse]:
+    """
+    List tournaments with filters, sorting, pagination and search.
+
+    Args:
+        session: Database session.
+        filters: Tournament filters.
+        sort: Sort parameters. Format: field:order — ex: name:asc,created_at:desc
+        pagination: Pagination parameters.
+        search: Search parameters.
+
+    Returns:
+        PaginatedResponse[TournamentResponse]: Paginated list of tournaments.
+    """
+    repository = SqlTournamentRepository(session)
+    service = TournamentService(repository)
+
+    pagination_domain = pagination.to_domain()
+    result = await service.list_tournaments(
+        filters.to_domain(),
+        pagination_domain,
+        sort.to_domain(),
+        search.to_domain(),
+    )
+
+    return PaginatedResponse(
+        items=[TournamentResponse.from_domain(t) for t in result.items],
+        total=result.total,
+        page=pagination_domain.page,
+        size=pagination_domain.size,
+        total_pages=-(-result.total // pagination_domain.size),
+    )
+
+
+@tournament_router.get(
+    "/{tournament_id}",
+    response_model=TournamentResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_tournament(
+    tournament_id: UUID,
+    session: DbSession,
+) -> TournamentResponse:
+    """
+    Retrieve a tournament by its ID.
+
+    Args:
+        tournament_id: The unique identifier of the tournament.
+        session: Database session.
+
+    Returns:
+        TournamentResponse: The details of the requested tournament.
+
+    Raises:
+        TournamentNotFoundError: If the tournament is not found.
+    """
+    repository = SqlTournamentRepository(session)
+    service = TournamentService(repository)
+    tournament = await service.get_tournament_by_id(tournament_id)
+    return TournamentResponse.from_domain(tournament)
+
+
+@tournament_router.post(
+    "/",
+    response_model=TournamentResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_tournament(
+    tournament_data: TournamentCreateRequest,
+    session: DbSession,
+) -> TournamentResponse:
+    """
+    Create a new tournament.
+
+    Args:
+        tournament_data: The data for the tournament to create.
+        session: Database session.
+
+    Returns:
+        TournamentResponse: The details of the created tournament.
+    """
+    repository = SqlTournamentRepository(session)
+    service = TournamentService(repository)
+    tournament = await service.create_tournament(tournament_data.to_domain())
+    return TournamentResponse.from_domain(tournament)
+
+
+@tournament_router.delete("/{tournament_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_tournament(
+    tournament_id: UUID,
+    session: DbSession,
+) -> None:
+    """
+    Delete a tournament by its ID.
+
+    Args:
+        tournament_id: The unique identifier of the tournament to delete.
+        session: Database session.
+
+    Returns:
+        None
+
+    Raises:
+        TournamentNotFoundError: If the tournament is not found.
+    """
+    repository = SqlTournamentRepository(session)
+    service = TournamentService(repository)
+    await service.delete_tournament(tournament_id)

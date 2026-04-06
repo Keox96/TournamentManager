@@ -8,6 +8,7 @@ from dataclasses import KW_ONLY, dataclass, field
 from typing import TYPE_CHECKING
 
 from src.domain.entities import BaseEntity
+from src.domain.exceptions.generic_exceptions import EntityValidationError
 from src.domain.utils.enums import TeamRole
 
 if TYPE_CHECKING:
@@ -38,7 +39,7 @@ class TeamPlayer(BaseEntity):
         Validate and normalize object state after initialization.
         """
         if self.score < 0:
-            raise ValueError("score cannot be negative")
+            raise EntityValidationError(message="score cannot be negative")
 
 
 @dataclass
@@ -62,9 +63,9 @@ class Team(BaseEntity):
         Validate and normalize object state after initialization.
         """
         if not self.name:
-            raise ValueError("name cannot be empty")
+            raise EntityValidationError(message="name cannot be empty")
         if not self.tag:
-            raise ValueError("tag cannot be empty")
+            raise EntityValidationError(message="tag cannot be empty")
 
     @property
     def captain(self) -> TeamPlayer | None:

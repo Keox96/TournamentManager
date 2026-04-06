@@ -34,3 +34,16 @@ class TournamentErrorCodes:
     TOURNAMENT_ALREADY_OPEN = "10005"
     TOURNAMENT_ALREADY_STARTED = "10006"
     TOURNAMENT_NOT_DRAFT = "10007"
+
+
+# Player Error Codes
+class PlayerErrorCodes:
+    """
+    Error code definitions for player.
+    """
+
+    PLAYER_NOT_FOUND = "20000"
+    INVALID_PLAYER_DATA = "20001"
+    UNAUTHORIZED_ACCESS = "20002"
+    PLAYER_USERNAME_EXISTS = "20003"
+    PLAYER_EMAIL_EXISTS = "20004"

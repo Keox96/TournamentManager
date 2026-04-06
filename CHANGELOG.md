@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.2.0 (2026-04-06)
+
+### Features
+
+- **TM-6**: Fix update tournament and add open tournament operation
+  ([`0b18962`](https://github.com/Keox96/TournamentManager/commit/0b1896284c49831280b941639965bf7b701ec51f))
+
+
 ## v1.1.0 (2026-04-05)
 
 ### Continuous Integration

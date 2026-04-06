@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.3.0 (2026-04-06)
+
+### Features
+
+- **TM-7**: Add players CRUD management
+  ([`2ff02c8`](https://github.com/Keox96/TournamentManager/commit/2ff02c87a1948aa1fc5f7d21337f67fb9bfbc594))
+
+
 ## v1.2.0 (2026-04-06)
 
 ### Features

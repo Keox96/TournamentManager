@@ -8,7 +8,7 @@ import pytest
 from httpx import AsyncClient
 
 from src.domain.exceptions.error_codes import GenericErrorCodes, TournamentErrorCodes
-from src.domain.utils.enums import TournamentMode
+from src.domain.utils.enums import TournamentMode, TournamentStatus
 
 
 class TestTournamentsAPI:
@@ -18,67 +18,8 @@ class TestTournamentsAPI:
 
     TOURNAMENT_BASE_PATH = "/api/v1/tournaments"
 
-    @pytest.mark.asyncio
-    async def test_create_new_tournament(self, test_client: AsyncClient) -> None:
-        """
-        Execute test create new tournament.
-
-        Args:
-        test_client: The test_client parameter.
-        """
-        request = {
-            "name": "Test Tournament",
-            "game": "Test Game",
-            "mode": TournamentMode.SINGLE_ELIMINATION,
-            "guild_id": 1,
-            "min_players_per_team": 5,
-            "max_teams": 8,
-            "description": "Test Description",
-            "best_of": 3,
-        }
-        response = await test_client.post(f"{self.TOURNAMENT_BASE_PATH}/", json=request)
-
-        assert response.status_code == HTTPStatus.CREATED.value
-        data = response.json()
-        assert data["name"] == request["name"]
-        assert data["game"] == request["game"]
-        assert data["mode"] == request["mode"]
-        assert data["guild_id"] == request["guild_id"]
-        assert data["min_players_per_team"] == request["min_players_per_team"]
-        assert data["max_teams"] == request["max_teams"]
-        assert data["description"] == request["description"]
-        assert data["best_of"] == request["best_of"]
-
-    @pytest.mark.asyncio
-    async def test_create_duplicate_tournament(self, test_client: AsyncClient) -> None:
-        """
-        Execute test create duplicate tournament.
-
-        Args:
-        test_client: The test_client parameter.
-        """
-        request = {
-            "name": "Duplicate Tournament",
-            "game": "Test Game",
-            "mode": TournamentMode.SINGLE_ELIMINATION,
-            "guild_id": 1,
-            "min_players_per_team": 5,
-            "max_teams": 8,
-        }
-        # Create the tournament for the first time
-        response1 = await test_client.post(
-            f"{self.TOURNAMENT_BASE_PATH}/", json=request
-        )
-        assert response1.status_code == HTTPStatus.CREATED.value
-
-        # Attempt to create the same tournament again
-        response2 = await test_client.post(
-            f"{self.TOURNAMENT_BASE_PATH}/", json=request
-        )
-        assert response2.status_code == HTTPStatus.CONFLICT.value
-        data = response2.json()
-        assert data["error"]["code"] == TournamentErrorCodes.TOURNAMENT_ALREADY_EXISTS
-
+    # CRUD operations
+    # Get by ID, name and guild
     @pytest.mark.asyncio
     async def test_get_tournament_by_id(self, test_client: AsyncClient) -> None:
         # First, create a tournament to retrieve
@@ -132,6 +73,7 @@ class TestTournamentsAPI:
         data = response.json()
         assert data["error"]["code"] == TournamentErrorCodes.TOURNAMENT_NOT_FOUND
 
+    # List with filters, pagination, sorting and search
     @pytest.mark.asyncio
     async def test_list_tournaments_with_filters(
         self, test_client: AsyncClient
@@ -355,6 +297,260 @@ class TestTournamentsAPI:
         assert len(data["items"]) == 1
         assert data["items"][0]["name"] == "Dota 2 International"
 
+    # Create
+    @pytest.mark.asyncio
+    async def test_create_new_tournament(self, test_client: AsyncClient) -> None:
+        """
+        Execute test create new tournament.
+
+        Args:
+        test_client: The test_client parameter.
+        """
+        request = {
+            "name": "Test Tournament",
+            "game": "Test Game",
+            "mode": TournamentMode.SINGLE_ELIMINATION,
+            "guild_id": 1,
+            "min_players_per_team": 5,
+            "max_teams": 8,
+            "description": "Test Description",
+            "best_of": 3,
+        }
+        response = await test_client.post(f"{self.TOURNAMENT_BASE_PATH}/", json=request)
+
+        assert response.status_code == HTTPStatus.CREATED.value
+        data = response.json()
+        assert data["name"] == request["name"]
+        assert data["game"] == request["game"]
+        assert data["mode"] == request["mode"]
+        assert data["guild_id"] == request["guild_id"]
+        assert data["min_players_per_team"] == request["min_players_per_team"]
+        assert data["max_teams"] == request["max_teams"]
+        assert data["description"] == request["description"]
+        assert data["best_of"] == request["best_of"]
+
+    @pytest.mark.asyncio
+    async def test_create_duplicate_tournament(self, test_client: AsyncClient) -> None:
+        """
+        Execute test create duplicate tournament.
+
+        Args:
+        test_client: The test_client parameter.
+        """
+        request = {
+            "name": "Duplicate Tournament",
+            "game": "Test Game",
+            "mode": TournamentMode.SINGLE_ELIMINATION,
+            "guild_id": 1,
+            "min_players_per_team": 5,
+            "max_teams": 8,
+        }
+        # Create the tournament for the first time
+        response1 = await test_client.post(
+            f"{self.TOURNAMENT_BASE_PATH}/", json=request
+        )
+        assert response1.status_code == HTTPStatus.CREATED.value
+
+        # Attempt to create the same tournament again
+        response2 = await test_client.post(
+            f"{self.TOURNAMENT_BASE_PATH}/", json=request
+        )
+        assert response2.status_code == HTTPStatus.CONFLICT.value
+        data = response2.json()
+        assert data["error"]["code"] == TournamentErrorCodes.TOURNAMENT_ALREADY_EXISTS
+
+    @pytest.mark.asyncio
+    async def test_create_tournament_with_invalid_data(
+        self, test_client: AsyncClient
+    ) -> None:
+        # Test creating a tournament with missing required fields
+        """
+        Execute test create tournament with invalid data.
+
+        Args:
+            test_client: The test_client parameter.
+        """
+        request = {
+            "game": "Test Game",
+            "mode": TournamentMode.SINGLE_ELIMINATION,
+            "guild_id": 1,
+            "min_players_per_team": 5,
+            "max_teams": 8,
+        }
+        response = await test_client.post(f"{self.TOURNAMENT_BASE_PATH}/", json=request)
+        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY.value
+        data = response.json()
+        assert data["error"]["code"] == GenericErrorCodes.VALIDATION_ERROR
+
+    # Update
+    @pytest.mark.asyncio
+    async def test_update_tournament(self, test_client: AsyncClient) -> None:
+        # Create a tournament to update
+        """
+        Execute test update tournament.
+
+        Args:
+            test_client: The test_client parameter.
+        """
+        request = {
+            "name": "Tournament to Update",
+            "game": "Test Game",
+            "mode": TournamentMode.SINGLE_ELIMINATION,
+            "guild_id": 1,
+            "min_players_per_team": 5,
+            "max_teams": 8,
+        }
+        create_response = await test_client.post(
+            f"{self.TOURNAMENT_BASE_PATH}/", json=request
+        )
+        assert create_response.status_code == HTTPStatus.CREATED.value
+        tournament_id = create_response.json()["id"]
+
+        # Update the tournament's name
+        update_request = {
+            "name": "Updated Tournament Name",
+            "game": "Test Game",
+            "mode": TournamentMode.SINGLE_ELIMINATION,
+            "guild_id": 1,
+            "min_players_per_team": 5,
+            "max_teams": 8,
+        }
+        update_response = await test_client.put(
+            f"{self.TOURNAMENT_BASE_PATH}/{tournament_id}", json=update_request
+        )
+        assert update_response.status_code == HTTPStatus.OK.value
+        data = update_response.json()
+        assert data["id"] == tournament_id
+        assert data["name"] == update_request["name"]
+
+    @pytest.mark.asyncio
+    async def test_update_tournament_with_invalid_status(
+        self, test_client: AsyncClient
+    ) -> None:
+        # Create a tournament to update
+        """
+        Execute test update tournament with invalid status.
+
+        Args:
+            test_client: The test_client parameter.
+        """
+        request = {
+            "name": "Tournament to Update",
+            "game": "Test Game",
+            "mode": TournamentMode.SINGLE_ELIMINATION,
+            "guild_id": 1,
+            "min_players_per_team": 5,
+            "max_teams": 8,
+        }
+        create_response = await test_client.post(
+            f"{self.TOURNAMENT_BASE_PATH}/", json=request
+        )
+        assert create_response.status_code == HTTPStatus.CREATED.value
+        tournament_id = create_response.json()["id"]
+
+        open_response = await test_client.post(
+            f"{self.TOURNAMENT_BASE_PATH}/{tournament_id}/open"
+        )
+        assert open_response.status_code == HTTPStatus.OK.value
+        assert open_response.json()["status"] == TournamentStatus.OPEN.value
+
+        # Attempt to update the tournament's name while it's in OPEN status
+        update_request = {
+            "name": "Updated Tournament Name",
+            "game": "Test Game",
+            "mode": TournamentMode.SINGLE_ELIMINATION,
+            "guild_id": 1,
+            "min_players_per_team": 5,
+            "max_teams": 8,
+        }
+        update_response = await test_client.put(
+            f"{self.TOURNAMENT_BASE_PATH}/{tournament_id}", json=update_request
+        )
+        assert update_response.status_code == HTTPStatus.BAD_REQUEST.value
+        data = update_response.json()
+        assert data["error"]["code"] == TournamentErrorCodes.TOURNAMENT_NOT_DRAFT
+
+    @pytest.mark.asyncio
+    async def test_update_nonexistent_tournament(
+        self, test_client: AsyncClient
+    ) -> None:
+        """
+        Execute test update nonexistent tournament.
+
+        Args:
+        test_client: The test_client parameter.
+        """
+        non_existent_id = "00000000-0000-0000-0000-000000000000"
+        update_request = {
+            "name": "Updated Tournament Name",
+            "game": "Test Game",
+            "mode": TournamentMode.SINGLE_ELIMINATION,
+            "guild_id": 1,
+            "min_players_per_team": 5,
+            "max_teams": 8,
+        }
+        response = await test_client.put(
+            f"{self.TOURNAMENT_BASE_PATH}/{non_existent_id}", json=update_request
+        )
+        assert response.status_code == HTTPStatus.NOT_FOUND.value
+        data = response.json()
+        assert data["error"]["code"] == TournamentErrorCodes.TOURNAMENT_NOT_FOUND
+
+    @pytest.mark.asyncio
+    async def test_update_tournament_with_duplicate_name(
+        self, test_client: AsyncClient
+    ) -> None:
+        # Create two tournaments to test duplicate name update
+        """
+        Execute test update tournament with duplicate name.
+
+        Args:
+            test_client: The test_client parameter.
+        """
+        request1 = {
+            "name": "Original Tournament",
+            "game": "Test Game",
+            "mode": TournamentMode.SINGLE_ELIMINATION,
+            "guild_id": 1,
+            "min_players_per_team": 5,
+            "max_teams": 8,
+        }
+        create_response1 = await test_client.post(
+            f"{self.TOURNAMENT_BASE_PATH}/", json=request1
+        )
+        assert create_response1.status_code == HTTPStatus.CREATED.value
+        tournament_id1 = create_response1.json()["id"]
+
+        request2 = {
+            "name": "Another Tournament",
+            "game": "Test Game",
+            "mode": TournamentMode.SINGLE_ELIMINATION,
+            "guild_id": 1,
+            "min_players_per_team": 5,
+            "max_teams": 8,
+        }
+        create_response2 = await test_client.post(
+            f"{self.TOURNAMENT_BASE_PATH}/", json=request2
+        )
+        assert create_response2.status_code == HTTPStatus.CREATED.value
+
+        # Attempt to update the first tournament's name to the second tournament's name
+        update_request = {
+            "name": request2["name"],  # Duplicate name
+            "game": "Test Game",
+            "mode": TournamentMode.SINGLE_ELIMINATION,
+            "guild_id": 1,
+            "min_players_per_team": 5,
+            "max_teams": 8,
+        }
+        update_response = await test_client.put(
+            f"{self.TOURNAMENT_BASE_PATH}/{tournament_id1}", json=update_request
+        )
+        assert update_response.status_code == HTTPStatus.CONFLICT.value
+        data = update_response.json()
+        assert data["error"]["code"] == TournamentErrorCodes.TOURNAMENT_ALREADY_EXISTS
+
+    # Delete
     @pytest.mark.asyncio
     async def test_delete_tournament(self, test_client: AsyncClient) -> None:
         # Create a tournament to delete
@@ -408,25 +604,92 @@ class TestTournamentsAPI:
         data = response.json()
         assert data["error"]["code"] == TournamentErrorCodes.TOURNAMENT_NOT_FOUND
 
+    # Custom operations
+    # Open tournament
     @pytest.mark.asyncio
-    async def test_create_tournament_with_invalid_data(
-        self, test_client: AsyncClient
-    ) -> None:
-        # Test creating a tournament with missing required fields
+    async def test_open_tournament(self, test_client: AsyncClient) -> None:
+        # Create a tournament to open
         """
-        Execute test create tournament with invalid data.
+        Execute test open tournament.
 
         Args:
             test_client: The test_client parameter.
         """
         request = {
+            "name": "Tournament to Open",
             "game": "Test Game",
             "mode": TournamentMode.SINGLE_ELIMINATION,
             "guild_id": 1,
             "min_players_per_team": 5,
             "max_teams": 8,
         }
-        response = await test_client.post(f"{self.TOURNAMENT_BASE_PATH}/", json=request)
-        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY.value
+        create_response = await test_client.post(
+            f"{self.TOURNAMENT_BASE_PATH}/", json=request
+        )
+        assert create_response.status_code == HTTPStatus.CREATED.value
+        tournament_id = create_response.json()["id"]
+
+        # Open the tournament
+        open_response = await test_client.post(
+            f"{self.TOURNAMENT_BASE_PATH}/{tournament_id}/open"
+        )
+        assert open_response.status_code == HTTPStatus.OK.value
+        data = open_response.json()
+        assert data["id"] == tournament_id
+        assert data["status"] == TournamentStatus.OPEN.value
+
+    @pytest.mark.asyncio
+    async def test_open_nonexistent_tournament(self, test_client: AsyncClient) -> None:
+        """
+        Execute test open nonexistent tournament.
+
+        Args:
+        test_client: The test_client parameter.
+        """
+        non_existent_id = "00000000-0000-0000-0000-000000000000"
+        response = await test_client.post(
+            f"{self.TOURNAMENT_BASE_PATH}/{non_existent_id}/open"
+        )
+        assert response.status_code == HTTPStatus.NOT_FOUND.value
         data = response.json()
-        assert data["error"]["code"] == GenericErrorCodes.VALIDATION_ERROR
+        assert data["error"]["code"] == TournamentErrorCodes.TOURNAMENT_NOT_FOUND
+
+    @pytest.mark.asyncio
+    async def test_open_tournament_with_invalid_status(
+        self, test_client: AsyncClient
+    ) -> None:
+        # Create a tournament to open
+        """
+        Execute test open tournament with invalid status.
+
+        Args:
+            test_client: The test_client parameter.
+        """
+        request = {
+            "name": "Tournament to Open",
+            "game": "Test Game",
+            "mode": TournamentMode.SINGLE_ELIMINATION,
+            "guild_id": 1,
+            "min_players_per_team": 5,
+            "max_teams": 8,
+        }
+        create_response = await test_client.post(
+            f"{self.TOURNAMENT_BASE_PATH}/", json=request
+        )
+        assert create_response.status_code == HTTPStatus.CREATED.value
+        tournament_id = create_response.json()["id"]
+        # Open the tournament for the first time
+        open_response1 = await test_client.post(
+            f"{self.TOURNAMENT_BASE_PATH}/{tournament_id}/open"
+        )
+        assert open_response1.status_code == HTTPStatus.OK.value
+        data1 = open_response1.json()
+        assert data1["id"] == tournament_id
+        assert data1["status"] == TournamentStatus.OPEN.value
+        # Attempt to open the tournament again while it's already in OPEN status
+        open_response2 = await test_client.post(
+            f"{self.TOURNAMENT_BASE_PATH}/{tournament_id}/open"
+        )
+        assert open_response2.status_code == HTTPStatus.BAD_REQUEST.value
+        data2 = open_response2.json()
+        assert data2["error"]["code"] == TournamentErrorCodes.TOURNAMENT_NOT_DRAFT

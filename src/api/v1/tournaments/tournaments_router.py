@@ -11,6 +11,7 @@ from src.api.v1.tournaments.tournaments_schema import (
     TournamentFiltersQuery,
     TournamentResponse,
     TournamentSortQuery,
+    TournamentUpdateRequest,
 )
 from src.domain.services.tournaments_service import TournamentService
 from src.infrastructure.database.repositories.tournaments_repository import (
@@ -32,6 +33,8 @@ tournament_router = APIRouter(
 )
 
 
+# CRUD operations
+# Get by ID and list with filters, pagination, sorting and search
 @tournament_router.get(
     "/",
     response_model=PaginatedResponse[TournamentResponse],
@@ -105,6 +108,7 @@ async def get_tournament(
     return TournamentResponse.from_domain(tournament)
 
 
+# Create
 @tournament_router.post(
     "/",
     response_model=TournamentResponse,
@@ -130,6 +134,40 @@ async def create_tournament(
     return TournamentResponse.from_domain(tournament)
 
 
+# Update
+@tournament_router.put(
+    "/{tournament_id}",
+    response_model=TournamentResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def update_tournament(
+    tournament_id: UUID,
+    tournament_data: TournamentUpdateRequest,
+    session: DbSession,
+) -> TournamentResponse:
+    """
+    Update an existing tournament.
+
+    Args:
+        tournament_id: The unique identifier of the tournament to update.
+        tournament_data: The updated data for the tournament.
+        session: Database session.
+
+    Returns:
+        TournamentResponse: The details of the updated tournament.
+
+    Raises:
+        TournamentNotFoundError: If the tournament is not found.
+    """
+    repository = SqlTournamentRepository(session)
+    service = TournamentService(repository)
+    tournament = await service.update_tournament(
+        tournament_id, tournament_data.to_domain()
+    )
+    return TournamentResponse.from_domain(tournament)
+
+
+# Delete
 @tournament_router.delete("/{tournament_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_tournament(
     tournament_id: UUID,
@@ -151,3 +189,34 @@ async def delete_tournament(
     repository = SqlTournamentRepository(session)
     service = TournamentService(repository)
     await service.delete_tournament(tournament_id)
+
+
+# Custom operations
+# Open tournament
+@tournament_router.post(
+    "/{tournament_id}/open",
+    status_code=status.HTTP_200_OK,
+)
+async def open_tournament(
+    tournament_id: UUID,
+    session: DbSession,
+) -> TournamentResponse:
+    """
+    Open a tournament by its ID.
+
+    Args:
+        tournament_id: The unique identifier of the tournament to open.
+        session: Database session.
+
+    Returns:
+        TournamentResponse: The details of the opened tournament.
+
+    Raises:
+        TournamentNotFoundError: If the tournament is not found.
+        TournamentAlreadyOpenedError: If the tournament is already opened.
+        TournamentAlreadyStartedError: If the tournament is already started.
+    """
+    repository = SqlTournamentRepository(session)
+    service = TournamentService(repository)
+    tournament = await service.open_tournament(tournament_id)
+    return TournamentResponse.from_domain(tournament)

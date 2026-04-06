@@ -235,6 +235,21 @@ class SqlBaseRepository[TEntity, TModel, TFilters, TSortField: StrEnum](
         await self.session.refresh(merged)
         return self.to_domain(merged)
 
+    async def update(self, entity: TEntity, updated_data: dict[str, Any]) -> TEntity:
+        """
+        Update the given entity.
+
+        Args:
+            entity: The entity parameter.
+            updated_data: The data to update the entity with.
+
+        Returns:
+            The result of the operation.
+        """
+        for key, value in updated_data.items():
+            setattr(entity, key, value)
+        return await self.save(entity)
+
     async def delete(self, entity_id: Any) -> None:
         """
         Execute delete.

@@ -4,6 +4,7 @@ Domain repository interfaces and query helper classes.
 
 from abc import ABC, abstractmethod
 from enum import StrEnum
+from typing import Any
 from uuid import UUID
 
 from src.domain.repositories.filters import PaginationParams, SearchParams, SortParams
@@ -34,6 +35,19 @@ class AbstractRepository[TEntity, TFilters, TSortField: StrEnum](ABC):
 
         Returns:
             The saved entity.
+        """
+        ...
+
+    @abstractmethod
+    async def update(self, entity: TEntity, updated_data: dict[str, Any]) -> TEntity:
+        """Update the given entity.
+
+        Args:
+            entity: The entity to update.
+            updated_data: The data to update the entity with.
+
+        Returns:
+            The updated entity.
         """
         ...
 

@@ -8,6 +8,7 @@ from dataclasses import KW_ONLY, dataclass, field
 from typing import TYPE_CHECKING
 
 from src.domain.entities import BaseEntity
+from src.domain.exceptions.generic_exceptions import EntityValidationError
 from src.domain.utils.enums import MatchStatus
 
 if TYPE_CHECKING:
@@ -36,7 +37,7 @@ class MatchTeam(BaseEntity):
         Validate and normalize object state after initialization.
         """
         if self.score < 0:
-            raise ValueError("score cannot be negative")
+            raise EntityValidationError(message="score cannot be negative")
 
 
 @dataclass
@@ -61,13 +62,13 @@ class MatchPlayer(BaseEntity):
         Validate and normalize object state after initialization.
         """
         if self.score < 0:
-            raise ValueError("score cannot be negative")
+            raise EntityValidationError(message="score cannot be negative")
         if self.kills < 0:
-            raise ValueError("kills cannot be negative")
+            raise EntityValidationError(message="kills cannot be negative")
         if self.deaths < 0:
-            raise ValueError("deaths cannot be negative")
+            raise EntityValidationError(message="deaths cannot be negative")
         if self.assists < 0:
-            raise ValueError("assists cannot be negative")
+            raise EntityValidationError(message="assists cannot be negative")
 
 
 @dataclass
@@ -89,7 +90,7 @@ class Match(BaseEntity):
         Validate and normalize object state after initialization.
         """
         if self.round < 1:
-            raise ValueError("round must be >= 1")
+            raise EntityValidationError(message="round must be >= 1")
 
     @property
     def winner(self) -> MatchTeam | None:

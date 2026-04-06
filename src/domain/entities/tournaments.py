@@ -9,6 +9,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from src.domain.entities import BaseEntity
+from src.domain.exceptions.generic_exceptions import EntityValidationError
 from src.domain.utils.enums import TournamentMode, TournamentStatus
 
 if TYPE_CHECKING:
@@ -42,7 +43,7 @@ class TournamentTeam(BaseEntity):
         """
         for attr in ("score", "wins", "losses", "draws"):
             if getattr(self, attr) < 0:
-                raise ValueError(f"{attr} cannot be negative")
+                raise EntityValidationError(message=f"{attr} cannot be negative")
 
     @property
     def games_played(self) -> int:
@@ -82,13 +83,13 @@ class Tournament(BaseEntity):
         Validate and normalize object state after initialization.
         """
         if not self.name:
-            raise ValueError("name cannot be empty")
+            raise EntityValidationError(message="name cannot be empty")
         if self.min_players_per_team < 1:
-            raise ValueError("min_players_per_team must be >= 1")
+            raise EntityValidationError(message="min_players_per_team must be >= 1")
         if self.max_teams < 2:
-            raise ValueError("max_teams must be >= 2")
+            raise EntityValidationError(message="max_teams must be >= 2")
         if self.best_of is not None and self.best_of % 2 == 0:
-            raise ValueError("best_of must be an odd number")
+            raise EntityValidationError(message="best_of must be an odd number")
 
     @property
     def is_open_for_registration(self) -> bool:

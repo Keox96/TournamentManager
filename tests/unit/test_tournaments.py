@@ -137,7 +137,6 @@ class TestSqlTournamentRepository:
             )
             search = SearchParams()
             result = await repository.list(filters, pagination, sort, search)
-            print(result)
             assert len(result.items) == 2
             assert result.items[0].name == "CS:GO Tournament"
             assert result.items[1].name == "LoL Tournament"

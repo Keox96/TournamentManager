@@ -159,5 +159,42 @@ class TournamentCreateRequest(BaseModel):
         )
 
 
+class TournamentUpdateRequest(BaseModel):
+    """
+    Schema representing a tournament update request payload.
+    """
+
+    name: str
+    game: str
+    mode: TournamentMode
+    guild_id: int
+    min_players_per_team: int = Field(..., gt=0)
+    max_teams: int = Field(..., gt=0, le=8)
+    description: str | None = None
+    best_of: int | None = None
+
+    def to_domain(self) -> Tournament:
+        """
+        Convert the object to domain.
+
+        Returns:
+        The result of the operation.
+        """
+        return Tournament(
+            id=uuid.uuid4(),
+            guild_id=self.guild_id,
+            name=self.name,
+            game=self.game,
+            mode=self.mode,
+            status=TournamentStatus.DRAFT,
+            min_players_per_team=self.min_players_per_team,
+            max_teams=self.max_teams,
+            description=self.description,
+            best_of=self.best_of,
+            created_at=datetime.now(UTC).replace(tzinfo=None),
+            updated_at=None,
+        )
+
+
 TournamentFiltersQuery = Annotated[TournamentFiltersRequest, Depends()]
 TournamentSortQuery = Annotated[TournamentSortRequest, Depends()]

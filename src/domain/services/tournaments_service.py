@@ -7,8 +7,8 @@ from src.domain.entities.tournaments import (
 )
 from src.domain.exceptions.tournaments_exceptions import (
     TournamentAlreadyExistsError,
-    TournamentAlreadyOpenedError,
     TournamentAlreadyStartedError,
+    TournamentNotDraftError,
     TournamentNotFoundError,
 )
 from src.domain.repositories.filters import PaginationParams, SearchParams, SortParams
@@ -47,11 +47,44 @@ class TournamentService:
             )
         return await self.repository.save(tournament)
 
-    async def update_tournament(self, tournament: Tournament) -> Tournament:
-        existing = await self.repository.get_by_id(tournament.id)
+    async def update_tournament(
+        self, tournament_id: uuid.UUID, tournament: Tournament
+    ) -> Tournament:
+        existing = await self.repository.get_by_id(tournament_id)
+        # Check if tournament exists
         if existing is None:
-            raise TournamentNotFoundError(details={"id": str(tournament.id)})
-        return await self.repository.save(tournament)
+            raise TournamentNotFoundError(details={"id": str(tournament_id)})
+        # Check if tournament is in DRAFT status
+        if existing.status != TournamentStatus.DRAFT:
+            raise TournamentNotDraftError(
+                details={
+                    "id": str(tournament_id),
+                    "status": existing.status.value,
+                }
+            )
+        # Check if name is changing and if new name already exists in the same guild
+        if (
+            tournament.name != existing.name
+            and await self.repository.get_by_name_and_guild(
+                tournament.name, tournament.guild_id
+            )
+            is not None
+        ):
+            raise TournamentAlreadyExistsError(
+                details={"name": tournament.name, "guild_id": str(tournament.guild_id)}
+            )
+        # Update data
+        updated_data = {
+            "name": tournament.name,
+            "description": tournament.description,
+            "game": tournament.game,
+            "mode": tournament.mode,
+            "max_teams": tournament.max_teams,
+            "guild_id": tournament.guild_id,
+            "min_players_per_team": tournament.min_players_per_team,
+            "best_of": tournament.best_of,
+        }
+        return await self.repository.update(existing, updated_data)
 
     async def delete_tournament(self, tournament_id: uuid.UUID) -> None:
         existing = await self.repository.get_by_id(tournament_id)
@@ -63,15 +96,18 @@ class TournamentService:
 
     async def open_tournament(self, tournament_id: uuid.UUID) -> Tournament:
         tournament_in_db = await self.repository.get_by_id(tournament_id)
+        # Check if tournament exists
         if tournament_in_db is None:
             raise TournamentNotFoundError(details={"id": str(tournament_id)})
+        # Check if tournament is in DRAFT status
         if tournament_in_db.status != TournamentStatus.DRAFT:
-            raise TournamentAlreadyOpenedError(
+            raise TournamentNotDraftError(
                 details={
                     "id": str(tournament_id),
                     "status": tournament_in_db.status.value,
                 }
             )
+        # All checks passed, open the tournament
         return await self.repository.open_tournament(tournament_id)
 
     async def start_tournament(self, tournament_id: uuid.UUID) -> Tournament:

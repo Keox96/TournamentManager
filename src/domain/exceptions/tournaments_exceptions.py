@@ -70,6 +70,25 @@ class InvalidTournamentDataError(BadRequestError):
         )
 
 
+class TournamentNotDraftError(BadRequestError):
+    """
+    Exception raised when tournament not in draft status conditions occur.
+    """
+
+    def __init__(self, *, details: dict[str, Any] | None = None):
+        """
+        Initialize a new init instance.
+
+        Args:
+        details: The details parameter.
+        """
+        super().__init__(
+            code=TournamentErrorCodes.TOURNAMENT_NOT_DRAFT,
+            message="Tournament is not in draft status",
+            details=details,
+        )
+
+
 class UnauthorizedAccessError(UnauthorizedError):
     """
     Exception raised when unauthorized access conditions occur.

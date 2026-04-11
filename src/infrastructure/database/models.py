@@ -27,6 +27,7 @@ from sqlalchemy.orm import (
 )
 
 from src.domain.entities.players import Player
+from src.domain.entities.teams import Team
 from src.domain.entities.tournaments import Tournament
 from src.domain.utils.enums import (
     TournamentMode,
@@ -113,63 +114,63 @@ class PlayerModel(Base):
         )
 
 
-# class TeamModel(Base):
-#     __tablename__ = "teams"
+class TeamModel(Base):
+    __tablename__ = "teams"
 
-#     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-#     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-#     tag: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-#     description: Mapped[str | None] = mapped_column(String(255), nullable=True)
-#     logo_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    tag: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    description: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    logo_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-#     # relationships
-#     members: Mapped[list[TeamPlayerModel]] = relationship(
-#         "TeamPlayerModel",
-#         back_populates="team",
-#         cascade="all, delete-orphan",
-#     )
-#     tournament_entries: Mapped[list[TournamentTeamModel]] = relationship(
-#         "TournamentTeamModel",
-#         back_populates="team",
-#     )
-#     match_participations: Mapped[list[MatchTeamModel]] = relationship(
-#         "MatchTeamModel",
-#         back_populates="team",
-#     )
+    # relationships
+    # members: Mapped[list[TeamPlayerModel]] = relationship(
+    #     "TeamPlayerModel",
+    #     back_populates="team",
+    #     cascade="all, delete-orphan",
+    # )
+    # tournament_entries: Mapped[list[TournamentTeamModel]] = relationship(
+    #     "TournamentTeamModel",
+    #     back_populates="team",
+    # )
+    # match_participations: Mapped[list[MatchTeamModel]] = relationship(
+    #     "MatchTeamModel",
+    #     back_populates="team",
+    # )
 
-#     def __repr__(self) -> str:
-#         return f"<TeamModel id={self.id} name={self.name!r}>"
+    def __repr__(self) -> str:
+        return f"<TeamModel id={self.id} name={self.name!r}>"
 
-#     @classmethod
-#     def from_domain(cls, team: Team) -> TeamModel:
-#         return cls(
-#             id=team.id,
-#             name=team.name,
-#             tag=team.tag,
-#             description=team.description,
-#             logo_url=team.logo_url,
-#             created_at=team.created_at,
-#             updated_at=team.updated_at,
-#         )
+    @classmethod
+    def from_domain(cls, team: Team) -> TeamModel:
+        return cls(
+            id=team.id,
+            name=team.name,
+            tag=team.tag,
+            description=team.description,
+            logo_url=team.logo_url,
+            created_at=team.created_at,
+            updated_at=team.updated_at,
+        )
 
-#     @classmethod
-#     def to_domain(cls, model: TeamModel) -> Team:
-#         return Team(
-#             id=model.id,
-#             name=model.name,
-#             tag=model.tag,
-#             description=model.description,
-#             logo_url=model.logo_url,
-#             members=[TeamPlayerModel.to_domain(m) for m in model.members],
-#             tournament_entries=[
-#                 TournamentTeamModel.to_domain(t) for t in model.tournament_entries
-#             ],
-#             match_participations=[
-#                 MatchTeamModel.to_domain(m) for m in model.match_participations
-#             ],
-#             created_at=model.created_at,
-#             updated_at=model.updated_at,
-#         )
+    @classmethod
+    def to_domain(cls, model: TeamModel) -> Team:
+        return Team(
+            id=model.id,
+            name=model.name,
+            tag=model.tag,
+            description=model.description,
+            logo_url=model.logo_url,
+            # members=[TeamPlayerModel.to_domain(m) for m in model.members],
+            # tournament_entries=[
+            #     TournamentTeamModel.to_domain(t) for t in model.tournament_entries
+            # ],
+            # match_participations=[
+            #     MatchTeamModel.to_domain(m) for m in model.match_participations
+            # ],
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+        )
 
 
 # class TeamPlayerModel(Base):
@@ -240,8 +241,8 @@ class TournamentModel(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     guild_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    mode: Mapped[str] = mapped_column(String(50), nullable=False)
-    status: Mapped[str] = mapped_column(String(50), nullable=False)
+    mode: Mapped[str] = mapped_column(String(255), nullable=False)
+    status: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     game: Mapped[str] = mapped_column(String(255), nullable=False)
     min_players_per_team: Mapped[int] = mapped_column(Integer, nullable=False)

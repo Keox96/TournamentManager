@@ -47,3 +47,16 @@ class PlayerErrorCodes:
     UNAUTHORIZED_ACCESS = "20002"
     PLAYER_USERNAME_EXISTS = "20003"
     PLAYER_EMAIL_EXISTS = "20004"
+
+
+# Team Error Codes
+class TeamErrorCodes:
+    """
+    Error code definitions for team.
+    """
+
+    TEAM_NOT_FOUND = "30000"
+    INVALID_TEAM_DATA = "30001"
+    UNAUTHORIZED_ACCESS = "30002"
+    TEAM_NAME_EXISTS = "30003"
+    TEAM_TAG_EXISTS = "30004"

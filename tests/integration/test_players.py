@@ -1,5 +1,5 @@
 """
-Test module for test tournaments.
+Test module for test players.
 """
 
 from http import HTTPStatus

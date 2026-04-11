@@ -8,7 +8,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import Depends
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 from src.api.base_schema import BaseSortRequest
 from src.domain.entities.players import Player, PlayerFilters, PlayerSortField
@@ -19,13 +19,15 @@ class PlayerResponse(BaseModel):
     Schema representing a player response payload.
     """
 
-    id: UUID
-    username: str
-    display_name: str
-    email: EmailStr | None = None
-    icon_url: str | None = None
-    created_at: datetime
-    updated_at: datetime | None
+    id: UUID = Field(..., description="Unique identifier of the player")
+    username: str = Field(..., description="Username of the player")
+    display_name: str = Field(..., description="Display name of the player")
+    email: EmailStr | None = Field(None, description="Email address of the player")
+    icon_url: str | None = Field(None, description="URL of the player's icon")
+    created_at: datetime = Field(..., description="Creation date of the player")
+    updated_at: datetime | None = Field(
+        None, description="Last update date of the player"
+    )
     # registered_teams: list[UUID] | None
     # matches: list[UUID] | None
 
@@ -56,10 +58,10 @@ class PlayerCreateRequest(BaseModel):
     Schema representing a player create request payload.
     """
 
-    username: str
-    display_name: str
-    email: EmailStr | None = None
-    icon_url: str | None = None
+    username: str = Field(..., description="Username of the player")
+    display_name: str = Field(..., description="Display name of the player")
+    email: EmailStr | None = Field(None, description="Email address of the player")
+    icon_url: str | None = Field(None, description="URL of the player's icon")
 
     def to_domain(self) -> Player:
         """
@@ -84,10 +86,10 @@ class PlayerUpdateRequest(BaseModel):
     Schema representing a player update request payload.
     """
 
-    username: str
-    display_name: str
-    email: EmailStr | None = None
-    icon_url: str | None = None
+    username: str = Field(..., description="Username of the player")
+    display_name: str = Field(..., description="Display name of the player")
+    email: EmailStr | None = Field(None, description="Email address of the player")
+    icon_url: str | None = Field(None, description="URL of the player's icon")
 
     def to_domain(self) -> Player:
         """
@@ -112,9 +114,19 @@ class PlayerFiltersRequest(BaseModel):
     Schema representing a player filters request payload.
     """
 
-    username: str | None = None
-    display_name_like: str | None = None
-    email_like: str | None = None
+    username: str | None = Field(None, description="Exact match for player's username")
+    display_name_like: str | None = Field(
+        None, description="Partial match for player's display name"
+    )
+    email_like: str | None = Field(
+        None, description="Partial match for player's email address"
+    )
+    created_at_from: datetime | None = Field(
+        None, description="Filter for players created after this date"
+    )
+    created_at_to: datetime | None = Field(
+        None, description="Filter for players created before this date"
+    )
 
     def to_domain(self) -> PlayerFilters:
         """
@@ -127,6 +139,8 @@ class PlayerFiltersRequest(BaseModel):
             username=self.username,
             display_name_like=self.display_name_like,
             email_like=self.email_like,
+            created_at_from=self.created_at_from,
+            created_at_to=self.created_at_to,
         )
 
 

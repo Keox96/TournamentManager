@@ -5,6 +5,7 @@ Domain entity definitions for the tournament manager.
 from __future__ import annotations
 
 from dataclasses import KW_ONLY, dataclass, field
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from src.domain.entities import BaseEntity
@@ -13,6 +14,7 @@ from src.domain.utils.enums import TeamRole
 
 if TYPE_CHECKING:
     import uuid
+    from datetime import datetime
 
     from src.domain.entities.matchs import MatchTeam
     from src.domain.entities.players import Player
@@ -76,3 +78,25 @@ class Team(BaseEntity):
         The result of the operation.
         """
         return next((m for m in self.members if m.role == TeamRole.CAPTAIN), None)
+
+
+class TeamSortField(StrEnum):
+    """
+    Enumeration of valid team sort values.
+    """
+
+    NAME = "name"
+    TAG = "tag"
+    CREATED_AT = "created_at"
+
+
+@dataclass
+class TeamFilters:
+    """
+    Filter container for player.
+    """
+
+    name_like: str | None = None
+    tag_like: str | None = None
+    created_at_from: datetime | None = None
+    created_at_to: datetime | None = None

@@ -24,19 +24,45 @@ class TournamentFiltersRequest(BaseModel):
     Schema representing a tournament filters request payload.
     """
 
-    guild_id: int | None = None
-    status: TournamentStatus | None = None
-    mode: TournamentMode | None = None
-    game_like: Annotated[str | None, Query(max_length=100)] = None
-    name_like: Annotated[str | None, Query(max_length=100)] = None
-    max_teams_min: int | None = None
-    max_teams_max: int | None = None
-    min_players_per_team_min: int | None = None
-    min_players_per_team_max: int | None = None
-    start_date_from: datetime | None = None
-    start_date_to: datetime | None = None
-    created_at_from: datetime | None = None
-    created_at_to: datetime | None = None
+    guild_id: int | None = Field(
+        None, description="Identifier of the guild to filter tournaments by"
+    )
+    status: TournamentStatus | None = Field(
+        None, description="Status to filter tournaments by"
+    )
+    mode: TournamentMode | None = Field(
+        None, description="Mode to filter tournaments by"
+    )
+    game_like: Annotated[str | None, Query(max_length=100)] = Field(
+        None, description="Game name to filter tournaments by"
+    )
+    name_like: Annotated[str | None, Query(max_length=100)] = Field(
+        None, description="Name to filter tournaments by"
+    )
+    max_teams_min: int | None = Field(
+        None, description="Minimum number of teams to filter tournaments by"
+    )
+    max_teams_max: int | None = Field(
+        None, description="Maximum number of teams to filter tournaments by"
+    )
+    min_players_per_team_min: int | None = Field(
+        None, description="Minimum number of players per team to filter tournaments by"
+    )
+    min_players_per_team_max: int | None = Field(
+        None, description="Maximum number of players per team to filter tournaments by"
+    )
+    start_date_from: datetime | None = Field(
+        None, description="Start date to filter tournaments by"
+    )
+    start_date_to: datetime | None = Field(
+        None, description="End date to filter tournaments by"
+    )
+    created_at_from: datetime | None = Field(
+        None, description="Creation date from to filter tournaments by"
+    )
+    created_at_to: datetime | None = Field(
+        None, description="Creation date to to filter tournaments by"
+    )
 
     def to_domain(self) -> TournamentFilters:
         """
@@ -76,20 +102,30 @@ class TournamentResponse(BaseModel):
     Schema representing a tournament response payload.
     """
 
-    id: UUID
-    guild_id: int
-    name: str
-    game: str
-    mode: TournamentMode
-    status: TournamentStatus
-    min_players_per_team: int
-    max_teams: int
-    description: str | None
-    best_of: int | None
-    start_date: datetime | None
-    end_date: datetime | None
-    created_at: datetime
-    updated_at: datetime | None
+    id: UUID = Field(..., description="Unique identifier of the tournament")
+    guild_id: int = Field(
+        ..., description="Identifier of the guild the tournament belongs to"
+    )
+    name: str = Field(..., description="Name of the tournament")
+    game: str = Field(..., description="Game of the tournament")
+    mode: TournamentMode = Field(..., description="Mode of the tournament")
+    status: TournamentStatus = Field(..., description="Status of the tournament")
+    min_players_per_team: int = Field(
+        ..., description="Minimum number of players per team"
+    )
+    max_teams: int = Field(..., description="Maximum number of teams")
+    description: str | None = Field(None, description="Description of the tournament")
+    best_of: int | None = Field(
+        None, description="Maximum number of rounds per match for the tournament"
+    )
+    start_date: datetime | None = Field(
+        None, description="Start date of the tournament"
+    )
+    end_date: datetime | None = Field(None, description="End date of the tournament")
+    created_at: datetime = Field(..., description="Creation date of the tournament")
+    updated_at: datetime | None = Field(
+        None, description="Last update date of the tournament"
+    )
     # registered_teams: list[UUID] | None
     # matches: list[UUID] | None
 
@@ -127,14 +163,20 @@ class TournamentCreateRequest(BaseModel):
     Schema representing a tournament create request payload.
     """
 
-    name: str
-    game: str
-    mode: TournamentMode
-    guild_id: int
-    min_players_per_team: int = Field(..., gt=0)
-    max_teams: int = Field(..., gt=0, le=8)
-    description: str | None = None
-    best_of: int | None = None
+    name: str = Field(..., description="Name of the tournament")
+    game: str = Field(..., description="Game of the tournament")
+    mode: TournamentMode = Field(..., description="Mode of the tournament")
+    guild_id: int = Field(
+        ..., description="Identifier of the guild the tournament belongs to"
+    )
+    min_players_per_team: int = Field(
+        ..., gt=0, description="Minimum number of players per team"
+    )
+    max_teams: int = Field(..., gt=0, le=8, description="Maximum number of teams")
+    description: str | None = Field(None, description="Description of the tournament")
+    best_of: int | None = Field(
+        None, description="Maximum number of rounds per match for the tournament"
+    )
 
     def to_domain(self) -> Tournament:
         """
@@ -164,14 +206,20 @@ class TournamentUpdateRequest(BaseModel):
     Schema representing a tournament update request payload.
     """
 
-    name: str
-    game: str
-    mode: TournamentMode
-    guild_id: int
-    min_players_per_team: int = Field(..., gt=0)
-    max_teams: int = Field(..., gt=0, le=8)
-    description: str | None = None
-    best_of: int | None = None
+    name: str = Field(..., description="Name of the tournament")
+    game: str = Field(..., description="Game of the tournament")
+    mode: TournamentMode = Field(..., description="Mode of the tournament")
+    guild_id: int = Field(
+        ..., description="Identifier of the guild the tournament belongs to"
+    )
+    min_players_per_team: int = Field(
+        ..., gt=0, description="Minimum number of players per team"
+    )
+    max_teams: int = Field(..., gt=0, le=8, description="Maximum number of teams")
+    description: str | None = Field(None, description="Description of the tournament")
+    best_of: int | None = Field(
+        None, description="Maximum number of rounds per match for the tournament"
+    )
 
     def to_domain(self) -> Tournament:
         """

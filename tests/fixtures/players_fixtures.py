@@ -1,5 +1,5 @@
 """
-Test module for tournaments fixtures.
+Test module for players fixtures.
 """
 
 import uuid

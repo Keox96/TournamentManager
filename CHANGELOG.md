@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.4.0 (2026-04-11)
+
+### Features
+
+- **TM-8**: Add team CRUD management
+  ([`45d40ae`](https://github.com/Keox96/TournamentManager/commit/45d40ae2c654cd6f9be7b8a0e673c72204357998))
+
+
 ## v1.3.0 (2026-04-06)
 
 ### Features

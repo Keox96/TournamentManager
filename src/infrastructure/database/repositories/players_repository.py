@@ -6,10 +6,11 @@ from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from src.domain.entities.players import Player, PlayerFilters, PlayerSortField
 from src.domain.repositories.players_repository import AbstractPlayerRepository
-from src.infrastructure.database.models import PlayerModel
+from src.infrastructure.database.models import PlayerModel, TeamPlayerModel
 from src.infrastructure.database.repositories.base_repository import SqlBaseRepository
 
 
@@ -40,6 +41,14 @@ class SqlPlayerRepository(
             PlayerModel.email,
         ]
 
+    @property
+    def load_options(self) -> list[Any]:
+        return [
+            selectinload(PlayerModel.team_memberships).selectinload(
+                TeamPlayerModel.team
+            )
+        ]
+
     def to_domain(self, model: PlayerModel) -> Player:
         return PlayerModel.to_domain(model)
 
@@ -48,13 +57,21 @@ class SqlPlayerRepository(
 
     # CRUD operations
     async def get_by_username(self, username: str) -> Player | None:
-        query = select(PlayerModel).where(PlayerModel.username == username)
+        query = (
+            select(PlayerModel)
+            .where(PlayerModel.username == username)
+            .options(*self.load_options)
+        )
         result = await self.session.execute(query)
         model = result.scalar_one_or_none()
         return self.to_domain(model) if model else None
 
     async def get_by_email(self, email: str) -> Player | None:
-        query = select(PlayerModel).where(PlayerModel.email == email)
+        query = (
+            select(PlayerModel)
+            .where(PlayerModel.email == email)
+            .options(*self.load_options)
+        )
         result = await self.session.execute(query)
         model = result.scalar_one_or_none()
         return self.to_domain(model) if model else None

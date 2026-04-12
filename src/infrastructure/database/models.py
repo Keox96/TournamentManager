@@ -10,7 +10,7 @@ never imports from here (dependency rule: domain ← application ← infrastruct
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime  # noqa: TCH003
 
 from sqlalchemy import (
     BigInteger,
@@ -20,6 +20,7 @@ from sqlalchemy import (
     String,
     Text,
     Uuid,
+    func,
 )
 from sqlalchemy import (
     inspect as sa_inspect,
@@ -53,7 +54,7 @@ class Base(DeclarativeBase):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=False),
         nullable=False,
-        default=datetime.now(UTC).replace(tzinfo=None),
+        default=func.now(),
     )
     updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=False), nullable=True

@@ -51,6 +51,7 @@ select = [
 ]
 ignore = [
     "E501",  # line too long — géré par le formatter
+    "B008",  # ignore FastAPI Query, Path and Body
 ]
 
 [tool.ruff.lint.isort]

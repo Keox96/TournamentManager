@@ -5,19 +5,25 @@ FastAPI module for team endpoints and schemas.
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Path, status
 
 from src.api.base_schema import PaginatedResponse, PaginationQuery, SearchQuery
 from src.api.dependencies import DbSession
 from src.api.exception_schema import ErrorResponse
 from src.api.v1.teams.teams_schema import (
+    TeamAddMemberRequest,
     TeamCreateRequest,
     TeamFiltersQuery,
     TeamResponse,
     TeamSortQuery,
+    TeamUpdateMemberRequest,
     TeamUpdateRequest,
 )
+from src.domain.services.team_players_service import TeamPlayerService
 from src.domain.services.teams_service import TeamService
+from src.infrastructure.database.repositories.players_repository import (
+    SqlPlayerRepository,
+)
 from src.infrastructure.database.repositories.teams_repository import SqlTeamRepository
 
 common_responses: dict[int | str, dict[str, Any]] = {
@@ -195,3 +201,111 @@ async def delete_team(
     repository = SqlTeamRepository(session)
     service = TeamService(repository)
     await service.delete_team(team_id)
+
+
+# Additional endpoints for managing team members could be added here, such as:
+# - Add member to team
+@team_router.post(
+    "/members/",
+    response_model=TeamResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_member_to_team(
+    session: DbSession,
+    team_member: TeamAddMemberRequest,
+) -> TeamResponse:
+    """
+    Add a member to a team.
+
+    Args:
+        team_id: The unique identifier of the team.
+        player_id: The unique identifier of the player to add.
+        role: The role of the player inside the team
+        session: Database session.
+
+    Returns:
+        TeamResponse: The updated team details.
+
+    Raises:
+        TeamNotFoundError: If the team is not found.
+        PlayerNotFoundError: If the player is not found.
+        TeamPlayerAlreadyExistsError: If the player is already a member of the team.
+    """
+    team_repository = SqlTeamRepository(session)
+    player_repository = SqlPlayerRepository(session)
+    service = TeamPlayerService(
+        team_repository=team_repository, player_repository=player_repository
+    )
+    team = await service.add_team_member(team_member.to_domain())
+    return TeamResponse.from_domain(team)
+
+
+# - Update member to team
+@team_router.put(
+    "/{team_id}/members/{player_id}",
+    response_model=TeamResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def update_member_to_team(
+    session: DbSession,
+    request: TeamUpdateMemberRequest,
+    team_id: UUID = Path(..., description="The unique identifier of the team"),
+    player_id: UUID = Path(
+        ..., description="The unique identifier of the player to add"
+    ),
+) -> TeamResponse:
+    """
+    Update an existing member of a team.
+
+    Args:
+        team_id: The unique identifier of the team.
+        player_id: The unique identifier of the player to update.
+        role_player: the new role attributed to the player.
+        session: Database session.
+
+    Returns:
+        TeamResponse: The updated team details.
+
+    Raises:
+        TeamNotFoundError: If the team is not found.
+        PlayerNotFoundError: If the player is not found.
+        TeamPlayerAlreadyExistsError: If the player is already a member of the team.
+    """
+    team_repository = SqlTeamRepository(session)
+    player_repository = SqlPlayerRepository(session)
+    service = TeamPlayerService(
+        team_repository=team_repository, player_repository=player_repository
+    )
+    team = await service.update_team_member(team_id, player_id, request.role_player)
+    return TeamResponse.from_domain(team)
+
+
+# - Remove member from team
+@team_router.delete(
+    "/{team_id}/members/{player_id}", status_code=status.HTTP_204_NO_CONTENT
+)
+async def remove_member_from_team(
+    team_id: UUID,
+    player_id: UUID,
+    session: DbSession,
+) -> None:
+    """
+    Remove a member from a team.
+
+    Args:
+        team_id: The unique identifier of the team.
+        player_id: The unique identifier of the player to remove.
+        session: Database session.
+    Returns:
+        None
+    Raises:
+        TeamNotFoundError: If the team is not found.
+        PlayerNotFoundError: If the player is not found.
+        TeamPlayerNotFoundError: If the player is not a member of the team.
+    """
+    team_repository = SqlTeamRepository(session)
+    player_repository = SqlPlayerRepository(session)
+    service = TeamPlayerService(
+        team_repository=team_repository, player_repository=player_repository
+    )
+    await service.remove_team_member(team_id, player_id)

@@ -70,6 +70,11 @@ class SqlBaseRepository[TEntity, TModel, TFilters, TSortField: StrEnum](
         """
         return []
 
+    @property
+    def load_options(self) -> list[Any]:
+        """Override in child repositories to eager-load relationships."""
+        return []
+
     @abstractmethod
     def to_domain(self, model: TModel) -> TEntity:
         """
@@ -203,7 +208,12 @@ class SqlBaseRepository[TEntity, TModel, TFilters, TSortField: StrEnum](
         if search_condition is not None:
             conditions.append(search_condition)
 
-        return select(self.model_class).where(*conditions).order_by(*order_clauses)
+        query = select(self.model_class).where(*conditions).order_by(*order_clauses)
+
+        if self.load_options:
+            query = query.options(*self.load_options)
+
+        return query
 
     async def get_by_id(self, entity_id: Any) -> TEntity | None:
         """Retrieve an entity by its unique identifier.
@@ -215,6 +225,10 @@ class SqlBaseRepository[TEntity, TModel, TFilters, TSortField: StrEnum](
             The entity instance or None if not found.
         """
         query = select(self.model_class).where(self.model_class.id == entity_id)  # type: ignore[attr-defined]
+
+        if self.load_options:
+            query = query.options(*self.load_options)
+
         result = await self.session.execute(query)
         model = result.scalar_one_or_none()
         return self.to_domain(model) if model else None
@@ -232,8 +246,8 @@ class SqlBaseRepository[TEntity, TModel, TFilters, TSortField: StrEnum](
         model = self.from_domain(entity)
         merged = await self.session.merge(model)
         await self.session.flush()
-        await self.session.refresh(merged)
-        return self.to_domain(merged)
+        result = await self.get_by_id(merged.id)  # type: ignore[attr-defined]
+        return result  # type: ignore[return-value]
 
     async def update(self, entity: TEntity, updated_data: dict[str, Any]) -> TEntity:
         """

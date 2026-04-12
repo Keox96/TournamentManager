@@ -10,13 +10,15 @@ from fastapi.params import Depends
 from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
 
 from src.api.base_schema import BaseSortRequest
-from src.domain.entities.teams import Team, TeamFilters, TeamSortField
+from src.api.shared_schema import TeamPlayerResponse
+from src.domain.entities.teams import Team, TeamFilters, TeamPlayer, TeamSortField
 from src.domain.exceptions.generic_exceptions import EntityValidationError
+from src.domain.utils.enums import TeamRole
 
 
 class TeamResponse(BaseModel):
     """
-    Schema representing a player response payload.
+    Schema representing a team response payload.
     """
 
     id: uuid.UUID = Field(..., description="Unique identifier of the team")
@@ -28,7 +30,9 @@ class TeamResponse(BaseModel):
     updated_at: datetime | None = Field(
         None, description="Timestamp when the team was last updated"
     )
-    # members: List[TeamPlayer] = Field(default_factory=list, description="List of team members")
+    members: list[TeamPlayerResponse] = Field(
+        default_factory=list, description="List of team members"
+    )
     # tournament_entries: List[UUID] = Field(default_factory=list, description="List of tournament IDs the team is registered in")
     # match_participations: List[UUID] = Field(default_factory=list, description="List of match IDs the team has participated in")
 
@@ -51,6 +55,7 @@ class TeamResponse(BaseModel):
             description=team.description,
             created_at=team.created_at,
             updated_at=team.updated_at,
+            members=[TeamPlayerResponse.from_domain(m) for m in team.members],
         )
 
 
@@ -212,6 +217,37 @@ class TeamSortRequest(BaseSortRequest[TeamSortField]):
 
     sort_field_class = TeamSortField
     default_sort_field = TeamSortField.CREATED_AT
+
+
+class TeamAddMemberRequest(BaseModel):
+    team_id: uuid.UUID = Field(..., description="The unique identifier of the team")
+    player_id: uuid.UUID = Field(
+        ..., description="The unique identifier of the player to add"
+    )
+    role_player: TeamRole = Field(
+        default=TeamRole.PLAYER, description="Role of the player in the team"
+    )
+
+    def to_domain(self) -> TeamPlayer:
+        """
+        Convert the object to domain.
+
+        Returns:
+        The result of the operation.
+        """
+        return TeamPlayer(
+            team_id=self.team_id,
+            player_id=self.player_id,
+            role=self.role_player,
+            created_at=datetime.now(UTC).replace(tzinfo=None),
+            updated_at=None,
+        )
+
+
+class TeamUpdateMemberRequest(BaseModel):
+    role_player: TeamRole = Field(
+        default=TeamRole.PLAYER, description="Role of the player in the team"
+    )
 
 
 TeamFiltersQuery = Annotated[TeamFiltersRequest, Depends()]

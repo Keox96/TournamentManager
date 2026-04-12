@@ -31,17 +31,8 @@ class TeamPlayer(BaseEntity):
     player_id: uuid.UUID
     team_id: uuid.UUID
     role: TeamRole = TeamRole.PLAYER
-    rank: int | None = None
-    score: int = 0
     player: Player | None = None
     team: Team | None = None
-
-    def __post_init__(self) -> None:
-        """
-        Validate and normalize object state after initialization.
-        """
-        if self.score < 0:
-            raise EntityValidationError(message="score cannot be negative")
 
 
 @dataclass

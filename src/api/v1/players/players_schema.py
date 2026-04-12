@@ -11,6 +11,7 @@ from fastapi import Depends
 from pydantic import BaseModel, EmailStr, Field
 
 from src.api.base_schema import BaseSortRequest
+from src.api.shared_schema import TeamPlayerResponse
 from src.domain.entities.players import Player, PlayerFilters, PlayerSortField
 
 
@@ -28,7 +29,7 @@ class PlayerResponse(BaseModel):
     updated_at: datetime | None = Field(
         None, description="Last update date of the player"
     )
-    # registered_teams: list[UUID] | None
+    team_memberships: list[TeamPlayerResponse] = Field(default_factory=list)
     # matches: list[UUID] | None
 
     @classmethod
@@ -50,6 +51,9 @@ class PlayerResponse(BaseModel):
             icon_url=player.icon_url,
             created_at=player.created_at,
             updated_at=player.updated_at,
+            team_memberships=[
+                TeamPlayerResponse.from_domain(m) for m in player.team_memberships
+            ],
         )
 
 

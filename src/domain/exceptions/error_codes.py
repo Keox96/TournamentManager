@@ -60,3 +60,15 @@ class TeamErrorCodes:
     UNAUTHORIZED_ACCESS = "30002"
     TEAM_NAME_EXISTS = "30003"
     TEAM_TAG_EXISTS = "30004"
+
+
+# Team Player Error Codes
+class TeamPlayerErrorCodes:
+    """
+    Error code definitions for team player.
+    """
+
+    TEAM_PLAYER_NOT_FOUND = "40000"
+    UNAUTHORIZED_ACCESS = "40001"
+    TEAM_PLAYER_EXISTS = "40002"
+    TEAM_CAPTAIN_EXISTS = "40003"

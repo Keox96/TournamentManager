@@ -6,15 +6,15 @@ services:
     container_name: tournament_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB:       ${POSTGRES_DB:-tournament_db}
-      POSTGRES_USER:     ${POSTGRES_USER:-tournament_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tournament_pass}
+      POSTGRES_DB:       ${POSTGRES_DB}
+      POSTGRES_USER:     ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tournament_user} -d ${POSTGRES_DB:-tournament_db}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -54,7 +54,7 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-tournament_user}:${POSTGRES_PASSWORD:-tournament_pass}@db:5432/${POSTGRES_DB:-tournament_db}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       PYTHONPATH: /tm_app/src
     ports:
       - "${API_PORT:-8000}:8000"

@@ -9,7 +9,6 @@ jobs:
   lint:
     name: Ruff
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v6
 
@@ -28,8 +27,6 @@ jobs:
   type-check:
     name: Mypy
     runs-on: ubuntu-latest
-    needs: lint
-
     steps:
       - uses: actions/checkout@v6
 
@@ -43,9 +40,9 @@ jobs:
         run: uv run mypy .
 
   test:
-    name: Pytest
+    name: Tests
     runs-on: ubuntu-latest
-    needs: type-check
+    needs: [lint, type-check]
 
     services:
       postgres:
@@ -71,7 +68,7 @@ jobs:
       - name: Install dependencies
         run: uv sync --group dev
 
-      - name: Wait for PostgreSQL         
+      - name: Wait for PostgreSQL
         run: |
           until pg_isready -h 127.0.0.1 -p 5432 -U user; do
             echo "Waiting for postgres..."
@@ -79,10 +76,37 @@ jobs:
           done
 
       - name: Run tests
-        run: uv run pytest
+        run: uv run pytest tests/ --cov=src --cov-report=xml:coverage.xml
         env:
-          DATABASE_URL: postgresql://user:password@127.0.0.1:5432/tournament_manager 
+          DATABASE_URL: postgresql://user:password@127.0.0.1:5432/tournament_manager
           APP_ENV: test
           DB_POOL_MIN: 2
           DB_POOL_MAX: 10
           DB_POOL_TIMEOUT: 30
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.xml
+
+  sonarcloud:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Download coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@0303d6b62e310685c0e34d0b9cde218036885c4d
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io

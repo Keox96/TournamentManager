@@ -377,7 +377,7 @@ class TestSqlTeamRepository:
             await session.commit()  # Commit les changements avant de les lire
             await player_repository.save(player_entity)
             await session.commit()  # Commit les changements avant de les lire
-            await team_repository.save_membership(teamplayer_entity)
+            await team_repository.save_team_membership(teamplayer_entity)
             await session.commit()
 
             query = (
@@ -411,7 +411,7 @@ class TestSqlTeamRepository:
             await player_repository.save(player_entity)
             await session.commit()  # Commit les changements avant de les lire
 
-            await team_repository.delete_membership(
+            await team_repository.delete_team_membership(
                 team_id=team_id, player_id=player_entity.id
             )
             await session.commit()
@@ -427,7 +427,7 @@ class TestSqlTeamRepository:
             await repository.save(team_entity)
             await session.commit()  # Commit les changements avant de les lire
 
-            await repository.delete_membership(
+            await repository.delete_team_membership(
                 team_id=team_entity.id, player_id=player_id
             )
             await session.commit()
@@ -448,7 +448,7 @@ class TestSqlTeamRepository:
             await session.commit()  # Commit les changements avant de les lire
             await player_repository.save(player_entity)
             await session.commit()  # Commit les changements avant de les lire
-            await team_repository.save_membership(teamplayer_entity)
+            await team_repository.save_team_membership(teamplayer_entity)
             await session.commit()
             session.expire_all()
 
@@ -463,7 +463,7 @@ class TestSqlTeamRepository:
             )
             model_entity.role = TeamRole.SUBSTITUTE
 
-            await team_repository.save_membership(model_entity)
+            await team_repository.save_team_membership(model_entity)
             query = select(TeamPlayerModel).where(
                 TeamPlayerModel.team_id == team_entity.id,
                 TeamPlayerModel.player_id == player_entity.id,
@@ -489,10 +489,10 @@ class TestSqlTeamRepository:
             await session.commit()  # Commit les changements avant de les lire
             await player_repository.save(player_entity)
             await session.commit()  # Commit les changements avant de les lire
-            await team_repository.save_membership(teamplayer_entity)
+            await team_repository.save_team_membership(teamplayer_entity)
             await session.commit()
 
-            await team_repository.delete_membership(
+            await team_repository.delete_team_membership(
                 team_id=team_entity.id, player_id=player_entity.id
             )
             await session.commit()
@@ -510,7 +510,9 @@ class TestSqlTeamRepository:
             team_id = uuid.uuid4()
             player_id = uuid.uuid4()
             # Should not raise an error
-            await repository.delete_membership(team_id=team_id, player_id=player_id)
+            await repository.delete_team_membership(
+                team_id=team_id, player_id=player_id
+            )
             await session.commit()
 
     async def test_remove_team_member_player(
@@ -529,7 +531,7 @@ class TestSqlTeamRepository:
             await session.commit()  # Commit les changements avant de les lire
             await player_repository.save(player_entity)
             await session.commit()  # Commit les changements avant de les lire
-            await team_repository.save_membership(teamplayer_entity)
+            await team_repository.save_team_membership(teamplayer_entity)
             await session.commit()
 
             await player_repository.delete(player_entity.id)
@@ -556,7 +558,7 @@ class TestSqlTeamRepository:
             await session.commit()  # Commit les changements avant de les lire
             await player_repository.save(player_entity)
             await session.commit()  # Commit les changements avant de les lire
-            await team_repository.save_membership(teamplayer_entity)
+            await team_repository.save_team_membership(teamplayer_entity)
             await session.commit()
 
             await team_repository.delete(team_entity.id)

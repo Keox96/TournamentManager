@@ -48,7 +48,7 @@ class TeamPlayerService:
             created_at=datetime.now(UTC).replace(tzinfo=None),
             updated_at=None,
         )
-        return await self.team_repository.save_membership(team_membership)
+        return await self.team_repository.save_team_membership(team_membership)
 
     async def update_team_member(
         self, team_id: uuid.UUID, player_id: uuid.UUID, role_player: TeamRole
@@ -67,7 +67,7 @@ class TeamPlayerService:
             raise TeamCaptainAlreadyExistsError(details={"team_id": team_id})
         team_membership = [m for m in team.members if m.player_id == player_id][0]
         team_membership.role = role_player
-        return await self.team_repository.save_membership(team_membership)
+        return await self.team_repository.save_team_membership(team_membership)
 
     # Remove team member
     async def remove_team_member(
@@ -83,6 +83,6 @@ class TeamPlayerService:
             raise TeamPlayerNotFoundError(
                 details={"team_id": team_id, "player_id": player_id}
             )
-        await self.team_repository.delete_membership(
+        await self.team_repository.delete_team_membership(
             team_id=team_id, player_id=player_id
         )

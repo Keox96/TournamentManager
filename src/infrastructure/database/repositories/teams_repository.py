@@ -11,7 +11,11 @@ from sqlalchemy.orm import selectinload
 
 from src.domain.entities.teams import Team, TeamFilters, TeamPlayer, TeamSortField
 from src.domain.repositories.teams_repository import AbstractTeamRepository
-from src.infrastructure.database.models import TeamModel, TeamPlayerModel
+from src.infrastructure.database.models import (
+    TeamModel,
+    TeamPlayerModel,
+    TournamentTeamModel,
+)
 from src.infrastructure.database.repositories.base_repository import SqlBaseRepository
 
 
@@ -44,7 +48,12 @@ class SqlTeamRepository(
 
     @property
     def load_options(self) -> list[Any]:
-        return [selectinload(TeamModel.members).selectinload(TeamPlayerModel.player)]
+        return [
+            selectinload(TeamModel.members).selectinload(TeamPlayerModel.player),
+            selectinload(TeamModel.tournament_entries).selectinload(
+                TournamentTeamModel.tournament
+            ),
+        ]
 
     def to_domain(self, model: TeamModel) -> Team:
         return TeamModel.to_domain(model)
@@ -69,7 +78,7 @@ class SqlTeamRepository(
         model = result.scalar_one_or_none()
         return self.to_domain(model) if model else None
 
-    async def save_membership(self, membership: TeamPlayer) -> Team:
+    async def save_team_membership(self, membership: TeamPlayer) -> Team:
         model = TeamPlayerModel.from_domain(membership)
         merged = await self.session.merge(model)
         await self.session.flush()
@@ -84,7 +93,9 @@ class SqlTeamRepository(
         team_model = result.scalar_one()
         return self.to_domain(team_model)
 
-    async def delete_membership(self, team_id: uuid.UUID, player_id: uuid.UUID) -> None:
+    async def delete_team_membership(
+        self, team_id: uuid.UUID, player_id: uuid.UUID
+    ) -> None:
         model = await self.session.get(TeamPlayerModel, (player_id, team_id))
         if model:
             await self.session.delete(model)

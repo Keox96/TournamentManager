@@ -7,13 +7,16 @@ from src.api.base_schema import PaginatedResponse, PaginationQuery, SearchQuery
 from src.api.dependencies import DbSession
 from src.api.exception_schema import ErrorResponse
 from src.api.v1.tournaments.tournaments_schema import (
+    AddTeamTournamentRequest,
     TournamentCreateRequest,
     TournamentFiltersQuery,
     TournamentResponse,
     TournamentSortQuery,
     TournamentUpdateRequest,
 )
+from src.domain.services.tournament_teams_service import TournamentTeamService
 from src.domain.services.tournaments_service import TournamentService
+from src.infrastructure.database.repositories.teams_repository import SqlTeamRepository
 from src.infrastructure.database.repositories.tournaments_repository import (
     SqlTournamentRepository,
 )
@@ -220,3 +223,32 @@ async def open_tournament(
     service = TournamentService(repository)
     tournament = await service.open_tournament(tournament_id)
     return TournamentResponse.from_domain(tournament)
+
+
+@tournament_router.post(
+    "/teams",
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_team_to_tournament(
+    request: AddTeamTournamentRequest,
+    session: DbSession,
+) -> TournamentResponse:
+    """
+    
+    """
+    tournament_repository = SqlTournamentRepository(session)
+    team_repository = SqlTeamRepository(session)
+    service = TournamentTeamService(tournament_repository=tournament_repository, team_repository=team_repository)
+    tournament = await service.add_team_to_tournament(request.to_domain())
+    return TournamentResponse.from_domain(tournament)
+
+
+@tournament_router.delete(
+    "{tournament_id}/teams/{team_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def remove_team_to_tournament(
+    session: DbSession,
+    tournament_id: UUID,
+    team_id: UUID,
+) -> None: ...

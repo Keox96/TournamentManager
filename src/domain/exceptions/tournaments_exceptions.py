@@ -89,6 +89,25 @@ class TournamentNotDraftError(BadRequestError):
         )
 
 
+class TournamentNotOpenError(BadRequestError):
+    """
+    Exception raised when tournament not in open status conditions occur.
+    """
+
+    def __init__(self, *, details: dict[str, Any] | None = None):
+        """
+        Initialize a new init instance.
+
+        Args:
+        details: The details parameter.
+        """
+        super().__init__(
+            code=TournamentErrorCodes.TOURNAMENT_NOT_OPEN,
+            message="Tournament is not in open status",
+            details=details,
+        )
+
+
 class UnauthorizedAccessError(UnauthorizedError):
     """
     Exception raised when unauthorized access conditions occur.

@@ -34,6 +34,7 @@ class TournamentErrorCodes:
     TOURNAMENT_ALREADY_OPEN = "10005"
     TOURNAMENT_ALREADY_STARTED = "10006"
     TOURNAMENT_NOT_DRAFT = "10007"
+    TOURNAMENT_NOT_OPEN = "10008"
 
 
 # Player Error Codes
@@ -72,3 +73,16 @@ class TeamPlayerErrorCodes:
     UNAUTHORIZED_ACCESS = "40001"
     TEAM_PLAYER_EXISTS = "40002"
     TEAM_CAPTAIN_EXISTS = "40003"
+
+
+# Tournament Team Error Codes
+class TournamentTeamErrorCodes:
+    """
+    Error code definitions for tournament team.
+    """
+
+    TOURNAMENT_TEAM_NOT_FOUND = "50000"
+    UNAUTHORIZED_ACCESS = "50001"
+    TOURNAMENT_TEAM_EXISTS = "50002"
+    TOURNAMENT_TEAM_NOT_ENOUGH_PLAYERS = "50003"
+    TOURNAMENT_TEAM_PLAYER_ALREADY_SUBSCRIBED = "50004"

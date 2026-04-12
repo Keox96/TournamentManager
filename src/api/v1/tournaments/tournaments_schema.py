@@ -15,6 +15,7 @@ from src.domain.entities.tournaments import (
     Tournament,
     TournamentFilters,
     TournamentSortField,
+    TournamentTeam,
 )
 from src.domain.utils.enums import TournamentMode, TournamentStatus
 
@@ -239,6 +240,25 @@ class TournamentUpdateRequest(BaseModel):
             max_teams=self.max_teams,
             description=self.description,
             best_of=self.best_of,
+            created_at=datetime.now(UTC).replace(tzinfo=None),
+            updated_at=None,
+        )
+
+
+class AddTeamTournamentRequest(BaseModel):
+    tournament_id: UUID = Field(..., description="ID of the tournament")
+    team_id: UUID = Field(..., description="ID of the team")
+
+    def to_domain(self) -> TournamentTeam:
+        """
+        Convert the object to domain.
+
+        Returns:
+        The result of the operation.
+        """
+        return TournamentTeam(
+            tournament_id=self.tournament_id,
+            team_id=self.team_id,
             created_at=datetime.now(UTC).replace(tzinfo=None),
             updated_at=None,
         )

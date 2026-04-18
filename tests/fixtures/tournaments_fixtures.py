@@ -5,7 +5,7 @@ Test module for tournaments fixtures.
 import uuid
 from datetime import datetime
 
-from src.domain.entities.tournaments import Tournament
+from src.domain.entities.tournaments import Tournament, TournamentTeam
 from src.domain.utils.enums import TournamentMode, TournamentStatus
 
 
@@ -61,6 +61,33 @@ def create_tournament(
         best_of=best_of,
         start_date=start_date,
         end_date=end_date,
+        created_at=created_at,
+        updated_at=updated_at,
+    )
+
+
+def create_tournamentteam(
+    *,
+    team_id: uuid.UUID | None = None,
+    tournament_id: uuid.UUID | None = None,
+    created_at: datetime = datetime(2024, 1, 1),
+    updated_at: datetime = datetime(2024, 1, 1),
+) -> TournamentTeam:
+    """
+    Create a new team member.
+
+    Args:
+        team_id: the team_id parameter
+        tournament_id: the player_id parameter
+        created_at: The created_at parameter.
+        updated_at: The updated_at parameter.
+
+    Returns:
+        The result of the operation.
+    """
+    return TournamentTeam(
+        team_id=team_id or uuid.uuid4(),
+        tournament_id=tournament_id or uuid.uuid4(),
         created_at=created_at,
         updated_at=updated_at,
     )

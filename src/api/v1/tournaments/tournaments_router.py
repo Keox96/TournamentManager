@@ -40,7 +40,6 @@ tournament_router = APIRouter(
 # Get by ID and list with filters, pagination, sorting and search
 @tournament_router.get(
     "/",
-    response_model=PaginatedResponse[TournamentResponse],
     status_code=status.HTTP_200_OK,
 )
 async def list_tournaments(
@@ -85,7 +84,6 @@ async def list_tournaments(
 
 @tournament_router.get(
     "/{tournament_id}",
-    response_model=TournamentResponse,
     status_code=status.HTTP_200_OK,
 )
 async def get_tournament(
@@ -114,7 +112,6 @@ async def get_tournament(
 # Create
 @tournament_router.post(
     "/",
-    response_model=TournamentResponse,
     status_code=status.HTTP_201_CREATED,
 )
 async def create_tournament(
@@ -140,7 +137,6 @@ async def create_tournament(
 # Update
 @tournament_router.put(
     "/{tournament_id}",
-    response_model=TournamentResponse,
     status_code=status.HTTP_200_OK,
 )
 async def update_tournament(
@@ -233,12 +229,12 @@ async def add_team_to_tournament(
     request: AddTeamTournamentRequest,
     session: DbSession,
 ) -> TournamentResponse:
-    """
-    
-    """
+    """ """
     tournament_repository = SqlTournamentRepository(session)
     team_repository = SqlTeamRepository(session)
-    service = TournamentTeamService(tournament_repository=tournament_repository, team_repository=team_repository)
+    service = TournamentTeamService(
+        tournament_repository=tournament_repository, team_repository=team_repository
+    )
     tournament = await service.add_team_to_tournament(request.to_domain())
     return TournamentResponse.from_domain(tournament)
 
@@ -251,4 +247,12 @@ async def remove_team_to_tournament(
     session: DbSession,
     tournament_id: UUID,
     team_id: UUID,
-) -> None: ...
+) -> None:
+    tournament_repository = SqlTournamentRepository(session)
+    team_repository = SqlTeamRepository(session)
+    service = TournamentTeamService(
+        tournament_repository=tournament_repository, team_repository=team_repository
+    )
+    await service.remove_team_from_tournament(
+        tournament_id=tournament_id, team_id=team_id
+    )

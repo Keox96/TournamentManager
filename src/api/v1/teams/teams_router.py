@@ -2,7 +2,7 @@
 FastAPI module for team endpoints and schemas.
 """
 
-from typing import Any
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Path, status
@@ -45,7 +45,6 @@ team_router = APIRouter(
 # Get by ID and list with filters, pagination, sorting and search
 @team_router.get(
     "/",
-    response_model=PaginatedResponse[TeamResponse],
     status_code=status.HTTP_200_OK,
 )
 async def list_teams(
@@ -90,7 +89,6 @@ async def list_teams(
 
 @team_router.get(
     "/{team_id}",
-    response_model=TeamResponse,
     status_code=status.HTTP_200_OK,
 )
 async def get_team(
@@ -119,7 +117,6 @@ async def get_team(
 # Create
 @team_router.post(
     "/",
-    response_model=TeamResponse,
     status_code=status.HTTP_201_CREATED,
 )
 async def create_team(
@@ -149,7 +146,6 @@ async def create_team(
 # Update
 @team_router.put(
     "/{team_id}",
-    response_model=TeamResponse,
     status_code=status.HTTP_200_OK,
 )
 async def update_team(
@@ -206,8 +202,7 @@ async def delete_team(
 # Additional endpoints for managing team members could be added here, such as:
 # - Add member to team
 @team_router.post(
-    "/members/",
-    response_model=TeamResponse,
+    "/members",
     status_code=status.HTTP_201_CREATED,
 )
 async def add_member_to_team(
@@ -243,16 +238,15 @@ async def add_member_to_team(
 # - Update member to team
 @team_router.put(
     "/{team_id}/members/{player_id}",
-    response_model=TeamResponse,
     status_code=status.HTTP_200_OK,
 )
 async def update_member_to_team(
     session: DbSession,
     request: TeamUpdateMemberRequest,
-    team_id: UUID = Path(..., description="The unique identifier of the team"),
-    player_id: UUID = Path(
-        ..., description="The unique identifier of the player to add"
-    ),
+    team_id: Annotated[UUID, Path(description="The unique identifier of the team")],
+    player_id: Annotated[
+        UUID, Path(description="The unique identifier of the player to add")
+    ],
 ) -> TeamResponse:
     """
     Update an existing member of a team.

@@ -124,14 +124,16 @@ class SqlTournamentRepository(
 
         query = (
             select(TournamentModel)
-            .where(TournamentModel.id == model.team_id)
+            .where(TournamentModel.id == model.tournament_id)
             .options(*self.load_options)
         )
         result = await self.session.execute(query)
         team_model = result.scalar_one()
         return self.to_domain(team_model)
 
-    async def delete_tournament_membership(self, tournament_id: uuid.UUID, team_id: uuid.UUID) -> None:
+    async def delete_tournament_membership(
+        self, tournament_id: uuid.UUID, team_id: uuid.UUID
+    ) -> None:
         model = await self.session.get(TournamentTeamModel, (tournament_id, team_id))
         if model:
             await self.session.delete(model)

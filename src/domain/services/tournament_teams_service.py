@@ -2,11 +2,19 @@ from uuid import UUID
 
 from src.domain.entities.tournaments import Tournament, TournamentTeam
 from src.domain.exceptions.teams_exceptions import TeamNotFoundError
-from src.domain.exceptions.tournament_teams_exception import TournamentPlayerAlreadyRegisteredError, TournamentTeamNotEnoughPlayersError
-from src.domain.exceptions.tournaments_exceptions import TournamentFullError, TournamentNotFoundError, TournamentNotOpenError
+from src.domain.exceptions.tournament_teams_exception import (
+    TournamentPlayerAlreadyRegisteredError,
+    TournamentTeamAlreadyRegisteredError,
+    TournamentTeamNotEnoughPlayersError,
+    TournamentTeamNotFoundError,
+)
+from src.domain.exceptions.tournaments_exceptions import (
+    TournamentFullError,
+    TournamentNotFoundError,
+    TournamentNotOpenError,
+)
 from src.domain.repositories.teams_repository import AbstractTeamRepository
 from src.domain.repositories.tournaments_repository import AbstractTournamentRepository
-from src.domain.utils.enums import TournamentStatus
 
 
 class TournamentTeamService:
@@ -20,11 +28,13 @@ class TournamentTeamService:
 
     async def add_team_to_tournament(
         self, tournament_team: TournamentTeam
-    ) -> Tournament: 
+    ) -> Tournament:
         # check tournament exists
-        tournament_exists = await self.tournament_repository.get_by_id(tournament_team.tournament_id)
+        tournament_exists = await self.tournament_repository.get_by_id(
+            tournament_team.tournament_id
+        )
         if not tournament_exists:
-            raise TournamentNotFoundError(details={"id":tournament_team.tournament_id})
+            raise TournamentNotFoundError(details={"id": tournament_team.tournament_id})
         # check tournament open status
         if not tournament_exists.is_open_for_registration:
             raise TournamentNotOpenError(details={"status": tournament_exists.status})
@@ -35,10 +45,23 @@ class TournamentTeamService:
         team_exists = await self.team_repository.get_by_id(tournament_team.team_id)
         # check team exists
         if not team_exists:
-            raise TeamNotFoundError(details={"id":tournament_team.team_id})
+            raise TeamNotFoundError(details={"id": tournament_team.team_id})
+        # check team is not already subscribed to the tournament
+        if any(
+            tm.team_id == tournament_team.team_id
+            for tm in tournament_exists.registered_teams
+        ):
+            raise TournamentTeamAlreadyRegisteredError(
+                details={"team_id": tournament_team.team_id}
+            )
         # check team has enough players
         if len(team_exists.members) < tournament_exists.min_players_per_team:
-            raise TournamentTeamNotEnoughPlayersError(details={"team_size": len(team_exists.members), "min_tournament_team_size": tournament_exists.min_players_per_team})
+            raise TournamentTeamNotEnoughPlayersError(
+                details={
+                    "team_size": len(team_exists.members),
+                    "min_tournament_team_size": tournament_exists.min_players_per_team,
+                }
+            )
         # check a player is not in multiple teams
         registered_player_ids = {
             m.player_id
@@ -48,16 +71,32 @@ class TournamentTeamService:
         }
         team_player_ids = {m.player_id for m in team_exists.members}
         if registered_player_ids & team_player_ids:
-            raise TournamentPlayerAlreadyRegisteredError(details={
-                "player_ids": list(registered_player_ids & team_player_ids)
-            })
-        return await self.tournament_repository.save_tournament_membership(tournament_team)
+            raise TournamentPlayerAlreadyRegisteredError(
+                details={"player_ids": list(registered_player_ids & team_player_ids)}
+            )
+        return await self.tournament_repository.save_tournament_membership(
+            tournament_team
+        )
 
     async def remove_team_from_tournament(
         self, tournament_id: UUID, team_id: UUID
-    ) -> None: ...
+    ) -> None:
         # check tournament exists
+        tournament_exists = await self.tournament_repository.get_by_id(tournament_id)
+        if not tournament_exists:
+            raise TournamentNotFoundError(details={"id": tournament_id})
+        # check tournament open status
+        if not tournament_exists.is_open_for_registration:
+            raise TournamentNotOpenError(details={"status": tournament_exists.status})
         # check team exists
+        team_exists = await self.team_repository.get_by_id(team_id)
+        if not team_exists:
+            raise TeamNotFoundError(details={"id": team_id})
         # check team subscribed to the tournament
-        # check tournament not empty
-        # check team exists
+        if not any(tm.team_id == team_id for tm in tournament_exists.registered_teams):
+            raise TournamentTeamNotFoundError(
+                details={"team_id": team_id, "tournament_id": tournament_id}
+            )
+        return await self.tournament_repository.delete_tournament_membership(
+            tournament_id=tournament_id, team_id=team_id
+        )

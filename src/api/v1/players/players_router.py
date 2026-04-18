@@ -41,7 +41,6 @@ player_router = APIRouter(
 # Get by ID and list with filters, pagination, sorting and search
 @player_router.get(
     "/",
-    response_model=PaginatedResponse[PlayerResponse],
     status_code=status.HTTP_200_OK,
 )
 async def list_players(
@@ -86,7 +85,6 @@ async def list_players(
 
 @player_router.get(
     "/{player_id}",
-    response_model=PlayerResponse,
     status_code=status.HTTP_200_OK,
 )
 async def get_player(
@@ -115,7 +113,6 @@ async def get_player(
 # Create
 @player_router.post(
     "/",
-    response_model=PlayerResponse,
     status_code=status.HTTP_201_CREATED,
 )
 async def create_player(
@@ -141,7 +138,6 @@ async def create_player(
 # Update
 @player_router.put(
     "/{player_id}",
-    response_model=PlayerResponse,
     status_code=status.HTTP_200_OK,
 )
 async def update_player(

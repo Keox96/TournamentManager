@@ -11,10 +11,12 @@ from fastapi import Depends, Query
 from pydantic import BaseModel, Field
 
 from src.api.base_schema import BaseSortRequest
+from src.api.shared_schema import TournamentTeamResponse
 from src.domain.entities.tournaments import (
     Tournament,
     TournamentFilters,
     TournamentSortField,
+    TournamentTeam,
 )
 from src.domain.utils.enums import TournamentMode, TournamentStatus
 
@@ -126,7 +128,7 @@ class TournamentResponse(BaseModel):
     updated_at: datetime | None = Field(
         None, description="Last update date of the tournament"
     )
-    # registered_teams: list[UUID] | None
+    registered_teams: list[TournamentTeamResponse] | None
     # matches: list[UUID] | None
 
     @classmethod
@@ -155,6 +157,10 @@ class TournamentResponse(BaseModel):
             end_date=tournament.end_date,
             created_at=tournament.created_at,
             updated_at=tournament.updated_at,
+            registered_teams=[
+                TournamentTeamResponse.from_domain(t)
+                for t in tournament.registered_teams
+            ],
         )
 
 
@@ -239,6 +245,25 @@ class TournamentUpdateRequest(BaseModel):
             max_teams=self.max_teams,
             description=self.description,
             best_of=self.best_of,
+            created_at=datetime.now(UTC).replace(tzinfo=None),
+            updated_at=None,
+        )
+
+
+class AddTeamTournamentRequest(BaseModel):
+    tournament_id: UUID = Field(..., description="ID of the tournament")
+    team_id: UUID = Field(..., description="ID of the team")
+
+    def to_domain(self) -> TournamentTeam:
+        """
+        Convert the object to domain.
+
+        Returns:
+        The result of the operation.
+        """
+        return TournamentTeam(
+            tournament_id=self.tournament_id,
+            team_id=self.team_id,
             created_at=datetime.now(UTC).replace(tzinfo=None),
             updated_at=None,
         )

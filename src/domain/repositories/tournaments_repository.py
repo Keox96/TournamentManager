@@ -5,6 +5,7 @@ from src.domain.entities.tournaments import (
     Tournament,
     TournamentFilters,
     TournamentSortField,
+    TournamentTeam,
 )
 from src.domain.repositories.base_repository import AbstractRepository
 
@@ -22,3 +23,13 @@ class AbstractTournamentRepository(
 
     @abstractmethod
     async def start_tournament(self, tournament_id: uuid.UUID) -> Tournament: ...
+
+    @abstractmethod
+    async def save_tournament_membership(
+        self, tournament_membership: TournamentTeam
+    ) -> Tournament: ...
+
+    @abstractmethod
+    async def delete_tournament_membership(
+        self, tournament_id: uuid.UUID, team_id: uuid.UUID
+    ) -> None: ...

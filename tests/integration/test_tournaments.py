@@ -11,9 +11,9 @@ from src.domain.exceptions.error_codes import GenericErrorCodes, TournamentError
 from src.domain.utils.enums import TournamentMode, TournamentStatus
 
 
-class TestTournamentsAPI:
+class TestTournamentsCrudAPI:
     """
-    Model representing a test tournaments api.
+    Model representing a test tournaments api for crud operations.
     """
 
     TOURNAMENT_BASE_PATH = "/api/v1/tournaments"
@@ -603,93 +603,3 @@ class TestTournamentsAPI:
         assert response.status_code == HTTPStatus.NOT_FOUND.value
         data = response.json()
         assert data["error"]["code"] == TournamentErrorCodes.TOURNAMENT_NOT_FOUND
-
-    # Custom operations
-    # Open tournament
-    @pytest.mark.asyncio
-    async def test_open_tournament(self, test_client: AsyncClient) -> None:
-        # Create a tournament to open
-        """
-        Execute test open tournament.
-
-        Args:
-            test_client: The test_client parameter.
-        """
-        request = {
-            "name": "Tournament to Open",
-            "game": "Test Game",
-            "mode": TournamentMode.SINGLE_ELIMINATION,
-            "guild_id": 1,
-            "min_players_per_team": 5,
-            "max_teams": 8,
-        }
-        create_response = await test_client.post(
-            f"{self.TOURNAMENT_BASE_PATH}/", json=request
-        )
-        assert create_response.status_code == HTTPStatus.CREATED.value
-        tournament_id = create_response.json()["id"]
-
-        # Open the tournament
-        open_response = await test_client.post(
-            f"{self.TOURNAMENT_BASE_PATH}/{tournament_id}/open"
-        )
-        assert open_response.status_code == HTTPStatus.OK.value
-        data = open_response.json()
-        assert data["id"] == tournament_id
-        assert data["status"] == TournamentStatus.OPEN.value
-
-    @pytest.mark.asyncio
-    async def test_open_nonexistent_tournament(self, test_client: AsyncClient) -> None:
-        """
-        Execute test open nonexistent tournament.
-
-        Args:
-        test_client: The test_client parameter.
-        """
-        non_existent_id = "00000000-0000-0000-0000-000000000000"
-        response = await test_client.post(
-            f"{self.TOURNAMENT_BASE_PATH}/{non_existent_id}/open"
-        )
-        assert response.status_code == HTTPStatus.NOT_FOUND.value
-        data = response.json()
-        assert data["error"]["code"] == TournamentErrorCodes.TOURNAMENT_NOT_FOUND
-
-    @pytest.mark.asyncio
-    async def test_open_tournament_with_invalid_status(
-        self, test_client: AsyncClient
-    ) -> None:
-        # Create a tournament to open
-        """
-        Execute test open tournament with invalid status.
-
-        Args:
-            test_client: The test_client parameter.
-        """
-        request = {
-            "name": "Tournament to Open",
-            "game": "Test Game",
-            "mode": TournamentMode.SINGLE_ELIMINATION,
-            "guild_id": 1,
-            "min_players_per_team": 5,
-            "max_teams": 8,
-        }
-        create_response = await test_client.post(
-            f"{self.TOURNAMENT_BASE_PATH}/", json=request
-        )
-        assert create_response.status_code == HTTPStatus.CREATED.value
-        tournament_id = create_response.json()["id"]
-        # Open the tournament for the first time
-        open_response1 = await test_client.post(
-            f"{self.TOURNAMENT_BASE_PATH}/{tournament_id}/open"
-        )
-        assert open_response1.status_code == HTTPStatus.OK.value
-        data1 = open_response1.json()
-        assert data1["id"] == tournament_id
-        assert data1["status"] == TournamentStatus.OPEN.value
-        # Attempt to open the tournament again while it's already in OPEN status
-        open_response2 = await test_client.post(
-            f"{self.TOURNAMENT_BASE_PATH}/{tournament_id}/open"
-        )
-        assert open_response2.status_code == HTTPStatus.BAD_REQUEST.value
-        data2 = open_response2.json()
-        assert data2["error"]["code"] == TournamentErrorCodes.TOURNAMENT_NOT_DRAFT

@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 
 from src.domain.entities.players import Player, PlayerFilters, PlayerSortField
 from src.domain.repositories.players_repository import AbstractPlayerRepository
-from src.infrastructure.database.models import PlayerModel, TeamPlayerModel
+from src.infrastructure.database.models import PlayerModel, TeamModel, TeamPlayerModel
 from src.infrastructure.database.repositories.base_repository import SqlBaseRepository
 
 
@@ -44,9 +44,9 @@ class SqlPlayerRepository(
     @property
     def load_options(self) -> list[Any]:
         return [
-            selectinload(PlayerModel.team_memberships).selectinload(
-                TeamPlayerModel.team
-            )
+            selectinload(PlayerModel.team_memberships)
+            .selectinload(TeamPlayerModel.team)
+            .selectinload(TeamModel.tournament_entries),  # ← manquant
         ]
 
     def to_domain(self, model: PlayerModel) -> Player:

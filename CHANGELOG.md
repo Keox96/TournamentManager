@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v1.6.0 (2026-04-18)
+
+### Continuous Integration
+
+- **TM-10**: Update ci pipeline
+  ([`0e8b107`](https://github.com/Keox96/TournamentManager/commit/0e8b107225dc8f6efa3faf7e5bcec68d7e36af6a))
+
+### Features
+
+- **TM-11**: Add tournament team CRUD management
+  ([`a42e5c3`](https://github.com/Keox96/TournamentManager/commit/a42e5c3d487cb735e81f136400abc706f8a1f2b5))
+
+- **TM-11**: Add tournament teams CRUD management
+  ([`0f547d4`](https://github.com/Keox96/TournamentManager/commit/0f547d463042e60d254aa14d1fa26d54ed3c7ed4))
+
+
 ## v1.5.0 (2026-04-12)
 
 ### Features

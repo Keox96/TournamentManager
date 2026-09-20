@@ -2,13 +2,17 @@
 Test module for test tournaments.
 """
 
+import uuid
 from http import HTTPStatus
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from src.domain.exceptions.error_codes import GenericErrorCodes, TournamentErrorCodes
-from src.domain.utils.enums import TournamentMode, TournamentStatus
+from src.domain.utils.enums import TeamRole, TournamentMode, TournamentStatus
+from src.infrastructure.database.models import MatchModel
 
 
 class TestTournamentsCrudAPI:
@@ -17,6 +21,195 @@ class TestTournamentsCrudAPI:
     """
 
     TOURNAMENT_BASE_PATH = "/api/v1/tournaments"
+
+    @pytest.mark.asyncio
+    async def test_start_tournament_generates_matches(
+        self,
+        test_client: AsyncClient,
+        test_session_factory: async_sessionmaker[AsyncSession],
+    ) -> None:
+        """Starting a tournament must generate the tournament bracket and persist matches."""
+        request = {
+            "name": f"Bracket Tournament {uuid.uuid4()}",
+            "game": "Test Game",
+            "mode": TournamentMode.SINGLE_ELIMINATION,
+            "guild_id": 1,
+            "min_players_per_team": 1,
+            "max_teams": 8,
+        }
+        create_response = await test_client.post(
+            f"{self.TOURNAMENT_BASE_PATH}/", json=request
+        )
+        assert create_response.status_code == HTTPStatus.CREATED.value
+        tournament_id = create_response.json()["id"]
+
+        open_response = await test_client.post(
+            f"{self.TOURNAMENT_BASE_PATH}/{tournament_id}/open"
+        )
+        assert open_response.status_code == HTTPStatus.OK.value
+
+        for i in range(4):
+            team_response = await test_client.post(
+                "/api/v1/teams/",
+                json={
+                    "name": f"Bracket Team {i}{uuid.uuid4().hex[:4]}",
+                    "tag": f"BT{i}",
+                    "description": "Generated for bracket test",
+                    "logo_url": "https://example.com/logo.png",
+                },
+            )
+            assert team_response.status_code == HTTPStatus.CREATED.value
+            team_id = team_response.json()["id"]
+
+            player_response = await test_client.post(
+                "/api/v1/players/",
+                json={
+                    "username": f"bracket_player_{i}_{uuid.uuid4().hex[:6]}",
+                    "display_name": f"Bracket Player {i}",
+                    "email": f"bracket_player_{i}_{uuid.uuid4().hex[:6]}@example.com",
+                },
+            )
+            assert player_response.status_code == HTTPStatus.CREATED.value
+
+            member_response = await test_client.post(
+                "/api/v1/teams/members",
+                json={
+                    "team_id": team_id,
+                    "player_id": player_response.json()["id"],
+                    "role_player": TeamRole.CAPTAIN,
+                },
+            )
+            assert member_response.status_code == HTTPStatus.CREATED.value
+
+            enrollment_response = await test_client.post(
+                f"{self.TOURNAMENT_BASE_PATH}/teams",
+                json={"tournament_id": tournament_id, "team_id": team_id},
+            )
+            assert enrollment_response.status_code == HTTPStatus.CREATED.value
+
+        start_response = await test_client.post(
+            f"{self.TOURNAMENT_BASE_PATH}/{tournament_id}/start"
+        )
+        assert start_response.status_code == HTTPStatus.CREATED.value
+        assert start_response.json()["status"] == TournamentStatus.IN_PROGRESS.value
+
+        matches_response = await test_client.get(
+            f"/api/v1/matchs/tournament/{tournament_id}"
+        )
+        assert matches_response.status_code == HTTPStatus.OK.value
+        matches = matches_response.json()
+        assert len(matches) == 2
+
+        next_matches_response = await test_client.get(
+            f"/api/v1/matchs/tournament/{tournament_id}/next"
+        )
+        assert next_matches_response.status_code == HTTPStatus.OK.value
+        assert len(next_matches_response.json()) == 2
+        assert {match["round"] for match in next_matches_response.json()} == {1}
+
+        first_round_matches = [match for match in matches if match["round"] == 1]
+        assert len(first_round_matches) == 2
+
+        for match_index, match in enumerate(first_round_matches):
+            result_payload = {
+                "teams": [
+                    {
+                        "team_id": participant["team_id"],
+                    }
+                    for participant in match["participants"]
+                ],
+                "players": [
+                    {
+                        "player_id": performance["player_id"],
+                        "score": 2 if player_index == 0 else 1,
+                        "kills": player_index + match_index,
+                        "deaths": 1,
+                        "assists": 0,
+                    }
+                    for player_index, performance in enumerate(
+                        match["player_performances"]
+                    )
+                ],
+            }
+            result_response = await test_client.put(
+                f"/api/v1/matchs/{match['id']}/result",
+                json=result_payload,
+            )
+            assert result_response.status_code == HTTPStatus.OK.value
+            result_data = result_response.json()
+            assert result_data["status"] == "completed"
+            first_team = result_data["participants"][0]
+            first_player = result_data["player_performances"][0]
+            assert first_team["score"] == first_player["score"]
+            assert first_team["kills"] == first_player["kills"]
+            assert first_team["deaths"] == first_player["deaths"]
+            assert first_team["assists"] == first_player["assists"]
+
+        matches_after_round = await test_client.get(
+            f"/api/v1/matchs/tournament/{tournament_id}"
+        )
+        assert matches_after_round.status_code == HTTPStatus.OK.value
+        assert len(matches_after_round.json()) == 3
+        assert [match["round"] for match in matches_after_round.json()].count(2) == 1
+
+        next_round_response = await test_client.get(
+            f"/api/v1/matchs/tournament/{tournament_id}/next"
+        )
+        assert next_round_response.status_code == HTTPStatus.OK.value
+        assert len(next_round_response.json()) == 1
+        assert next_round_response.json()[0]["round"] == 2
+
+        final_match = next(
+            match for match in matches_after_round.json() if match["round"] == 2
+        )
+        final_response = await test_client.put(
+            f"/api/v1/matchs/{final_match['id']}/result",
+            json={
+                "teams": [
+                    {
+                        "team_id": participant["team_id"],
+                    }
+                    for participant_index, participant in enumerate(
+                        final_match["participants"]
+                    )
+                ],
+                "players": [
+                    {
+                        "player_id": performance["player_id"],
+                        "score": 3 if player_index == 0 else 0,
+                        "kills": 2,
+                        "deaths": 0,
+                        "assists": 1,
+                    }
+                    for player_index, performance in enumerate(
+                        final_match["player_performances"]
+                    )
+                ],
+            },
+        )
+        assert final_response.status_code == HTTPStatus.OK.value
+
+        tournament_response = await test_client.get(
+            f"{self.TOURNAMENT_BASE_PATH}/{tournament_id}"
+        )
+        assert tournament_response.status_code == HTTPStatus.OK.value
+        tournament_data = tournament_response.json()
+        assert tournament_data["status"] == TournamentStatus.COMPLETED.value
+        ranks = [team["rank"] for team in tournament_data["registered_teams"]]
+        assert sorted(ranks) == [1, 2, 3, 3]
+
+        assert (
+            await test_client.get(f"/api/v1/matchs/tournament/{tournament_id}/next")
+        ).json() == []
+
+        async with test_session_factory() as session:
+            count = await session.scalar(
+                select(func.count())
+                .select_from(MatchModel)
+                .where(MatchModel.tournament_id == tournament_id)
+            )
+
+        assert count == 3
 
     # CRUD operations
     # Get by ID, name and guild

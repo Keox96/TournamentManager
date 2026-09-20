@@ -16,6 +16,7 @@ from sqlalchemy import (
     BigInteger,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -32,10 +33,12 @@ from sqlalchemy.orm import (
     relationship,
 )
 
+from src.domain.entities.matchs import Match, MatchPlayer, MatchTeam
 from src.domain.entities.players import Player
 from src.domain.entities.teams import Team, TeamPlayer
 from src.domain.entities.tournaments import Tournament, TournamentTeam
 from src.domain.utils.enums import (
+    MatchStatus,
     TeamRole,
     TournamentMode,
     TournamentStatus,
@@ -81,11 +84,11 @@ class PlayerModel(Base):
         back_populates="player",
         cascade="all, delete-orphan",
     )
-    # match_performances: Mapped[list[MatchPlayerModel]] = relationship(
-    #     "MatchPlayerModel",
-    #     back_populates="player",
-    #     cascade="all, delete-orphan",
-    # )
+    match_performances: Mapped[list[MatchPlayerModel]] = relationship(
+        "MatchPlayerModel",
+        back_populates="player",
+        cascade="all, delete-orphan",
+    )
 
     def __repr__(self) -> str:
         return f"<PlayerModel id={self.id} username={self.username!r}>"
@@ -103,7 +106,16 @@ class PlayerModel(Base):
         )
 
     @classmethod
-    def to_domain(cls, model: PlayerModel, include_memberships: bool = True) -> Player:
+    def to_domain(
+        cls,
+        model: PlayerModel,
+        include_memberships: bool = True,
+        include_matchs: bool = False,
+    ) -> Player:
+        state = sa_inspect(model)
+        memberships_loaded = "team_memberships" not in state.unloaded
+        performances_loaded = "match_performances" not in state.unloaded
+
         return Player(
             id=model.id,
             username=model.username,
@@ -114,11 +126,14 @@ class PlayerModel(Base):
                 TeamPlayerModel.to_domain(m, include_player=False)
                 for m in model.team_memberships
             ]
-            if include_memberships
+            if include_memberships and memberships_loaded
             else [],
-            # match_performances=[
-            #     MatchPlayerModel.to_domain(m) for m in model.match_performances
-            # ],
+            match_performances=[
+                MatchPlayerModel.to_domain(m, include_player=False)
+                for m in model.match_performances
+            ]
+            if include_matchs and performances_loaded
+            else [],
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
@@ -144,10 +159,11 @@ class TeamModel(Base):
         back_populates="team",
         cascade="all, delete-orphan",
     )
-    # match_participations: Mapped[list[MatchTeamModel]] = relationship(
-    #     "MatchTeamModel",
-    #     back_populates="team",
-    # )
+    match_participations: Mapped[list[MatchTeamModel]] = relationship(
+        "MatchTeamModel",
+        back_populates="team",
+        cascade="all, delete-orphan",
+    )
 
     def __repr__(self) -> str:
         return f"<TeamModel id={self.id} name={self.name!r}>"
@@ -170,7 +186,13 @@ class TeamModel(Base):
         model: TeamModel,
         include_members: bool = True,
         include_tournament: bool = True,
+        include_match: bool = False,
     ) -> Team:
+        state = sa_inspect(model)
+        members_loaded = "members" not in state.unloaded
+        tournaments_loaded = "tournament_entries" not in state.unloaded
+        participations_loaded = "match_participations" not in state.unloaded
+
         return Team(
             id=model.id,
             name=model.name,
@@ -180,17 +202,20 @@ class TeamModel(Base):
             members=[
                 TeamPlayerModel.to_domain(m, include_team=False) for m in model.members
             ]
-            if include_members
+            if include_members and members_loaded
             else [],
             tournament_entries=[
                 TournamentTeamModel.to_domain(t, include_team=False)
                 for t in model.tournament_entries
             ]
-            if include_tournament
+            if include_tournament and tournaments_loaded
             else [],
-            # match_participations=[
-            #     MatchTeamModel.to_domain(m) for m in model.match_participations
-            # ],
+            match_participations=[
+                MatchTeamModel.to_domain(m, include_team=False)
+                for m in model.match_participations
+            ]
+            if include_match and participations_loaded
+            else [],
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
@@ -253,13 +278,16 @@ class TeamPlayerModel(Base):
             player_id=model.player_id,
             team_id=model.team_id,
             role=TeamRole(model.role),
-            player=PlayerModel.to_domain(model.player, include_memberships=False)
+            player=PlayerModel.to_domain(
+                model.player, include_memberships=False, include_matchs=False
+            )
             if include_player and player_loaded
             else None,
             team=TeamModel.to_domain(
                 model.team,
                 include_members=False,
                 include_tournament=False,  # ← ajoute ça
+                include_match=False,
             )
             if include_team and team_loaded
             else None,
@@ -293,11 +321,11 @@ class TournamentModel(Base):
     )
 
     # relationships
-    # matches: Mapped[list[MatchModel]] = relationship(
-    #     "MatchModel",
-    #     back_populates="tournament",
-    #     cascade="all, delete-orphan",
-    # )
+    matches: Mapped[list[MatchModel]] = relationship(
+        "MatchModel",
+        back_populates="tournament",
+        cascade="all, delete-orphan",
+    )
     registered_teams: Mapped[list[TournamentTeamModel]] = relationship(
         "TournamentTeamModel",
         back_populates="tournament",
@@ -345,7 +373,10 @@ class TournamentModel(Base):
 
     @classmethod
     def to_domain(
-        cls, model: TournamentModel, include_teams: bool = True
+        cls,
+        model: TournamentModel,
+        include_teams: bool = True,
+        include_matchs: bool = False,
     ) -> Tournament:
         """
         Convert the object to domain.
@@ -356,6 +387,10 @@ class TournamentModel(Base):
         Returns:
         The result of the operation.
         """
+        state = sa_inspect(model)
+        teams_loaded = "registered_teams" not in state.unloaded
+        matches_loaded = "matches" not in state.unloaded
+
         return Tournament(
             id=model.id,
             guild_id=model.guild_id,
@@ -374,9 +409,11 @@ class TournamentModel(Base):
             registered_teams=[
                 TournamentTeamModel.to_domain(t) for t in model.registered_teams
             ]
-            if include_teams
+            if include_teams and teams_loaded
             else [],
-            # matches=[MatchModel.to_domain(m) for m in model.matches],
+            matches=[MatchModel.to_domain(m) for m in model.matches]
+            if include_matchs and matches_loaded
+            else [],
         )
 
 
@@ -455,6 +492,7 @@ class TournamentTeamModel(Base):
                 model.team,
                 include_members=True,  # ✅ charge les membres
                 include_tournament=False,  # ✅ casse la récursion
+                include_match=True,
             )
             if include_team and team_loaded
             else None,
@@ -466,183 +504,228 @@ class TournamentTeamModel(Base):
         )
 
 
-# class MatchModel(Base):
-#     __tablename__ = "matches"
+class MatchModel(Base):
+    __tablename__ = "matches"
 
-#     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-#     tournament_id: Mapped[uuid.UUID] = mapped_column(
-#         Uuid,
-#         ForeignKey("tournaments.id", ondelete="CASCADE"),
-#         nullable=False,
-#     )
-#     status: Mapped[str] = mapped_column(String(255), nullable=False)
-#     round: Mapped[int] = mapped_column(Integer, nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    tournament_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        ForeignKey("tournaments.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    status: Mapped[str] = mapped_column(String(255), nullable=False)
+    round: Mapped[int] = mapped_column(Integer, nullable=False)
 
-#     __table_args__ = (Index("matches_tournament_id_index", "tournament_id"),)
+    __table_args__ = (Index("matches_tournament_id_index", "tournament_id"),)
 
-#     # relationships
-#     tournament: Mapped[TournamentModel] = relationship(
-#         "TournamentModel", back_populates="matches"
-#     )
-#     participants: Mapped[list[MatchTeamModel]] = relationship(
-#         "MatchTeamModel",
-#         back_populates="match",
-#         cascade="all, delete-orphan",
-#     )
-#     player_performances: Mapped[list[MatchPlayerModel]] = relationship(
-#         "MatchPlayerModel",
-#         back_populates="match",
-#         cascade="all, delete-orphan",
-#     )
+    # relationships
+    tournament: Mapped[TournamentModel] = relationship(
+        "TournamentModel", back_populates="matches"
+    )
+    participants: Mapped[list[MatchTeamModel]] = relationship(
+        "MatchTeamModel",
+        back_populates="match",
+        cascade="all, delete-orphan",
+    )
+    player_performances: Mapped[list[MatchPlayerModel]] = relationship(
+        "MatchPlayerModel",
+        back_populates="match",
+        cascade="all, delete-orphan",
+    )
 
-#     def __repr__(self) -> str:
-#         return f"<MatchModel id={self.id} round={self.round} status={self.status!r}>"
+    def __repr__(self) -> str:
+        return f"<MatchModel id={self.id} round={self.round} status={self.status!r}>"
 
-#     @classmethod
-#     def from_domain(cls, match: Match) -> MatchModel:
-#         return cls(
-#             id=match.id,
-#             tournament_id=match.tournament_id,
-#             status=match.status.value,
-#             round=match.round,
-#             created_at=match.created_at,
-#             updated_at=match.updated_at,
-#         )
+    @classmethod
+    def from_domain(cls, match: Match) -> MatchModel:
+        return cls(
+            id=match.id,
+            tournament_id=match.tournament_id,
+            status=match.status.value,
+            round=match.round,
+            created_at=match.created_at,
+            updated_at=match.updated_at,
+        )
 
-#     @classmethod
-#     def to_domain(cls, model: MatchModel) -> Match:
-#         return Match(
-#             id=model.id,
-#             tournament_id=model.tournament_id,
-#             status=MatchStatus(model.status),
-#             round=model.round,
-#             participants=[MatchTeamModel.to_domain(p) for p in model.participants],
-#             player_performances=[
-#                 MatchPlayerModel.to_domain(p) for p in model.player_performances
-#             ],
-#             created_at=model.created_at,
-#             updated_at=model.updated_at,
-#         )
+    @classmethod
+    def to_domain(
+        cls, model: MatchModel, include_teams: bool = True, include_players: bool = True
+    ) -> Match:
+        state = sa_inspect(model)
+        participants_loaded = "participants" not in state.unloaded
+        performances_loaded = "player_performances" not in state.unloaded
 
-
-# class MatchTeamModel(Base):
-#     """
-#     Join table between matches and teams (per-match results).
-#     Composite PK: (match_id, team_id).
-#     """
-
-#     __tablename__ = "match_teams"
-
-#     match_id: Mapped[uuid.UUID] = mapped_column(
-#         Uuid,
-#         ForeignKey("matches.id", ondelete="CASCADE"),
-#         primary_key=True,
-#     )
-#     team_id: Mapped[uuid.UUID] = mapped_column(
-#         Uuid,
-#         ForeignKey("teams.id", ondelete="CASCADE"),
-#         primary_key=True,
-#     )
-#     rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
-#     score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-
-#     # relationships
-#     match: Mapped[MatchModel] = relationship(
-#         "MatchModel", back_populates="participants"
-#     )
-#     team: Mapped[TeamModel] = relationship(
-#         "TeamModel", back_populates="match_participations"
-#     )
-
-#     def __repr__(self) -> str:
-#         return f"<MatchTeamModel match={self.match_id} team={self.team_id} rank={self.rank}>"
-
-#     @classmethod
-#     def from_domain(cls, participation: MatchTeam) -> MatchTeamModel:
-#         return cls(
-#             match_id=participation.match_id,
-#             team_id=participation.team_id,
-#             rank=participation.rank,
-#             score=participation.score,
-#             created_at=participation.created_at,
-#             updated_at=participation.updated_at,
-#         )
-
-#     @classmethod
-#     def to_domain(cls, model: MatchTeamModel) -> MatchTeam:
-#         return MatchTeam(
-#             match_id=model.match_id,
-#             team_id=model.team_id,
-#             rank=model.rank,
-#             score=model.score,
-#             match=MatchModel.to_domain(model.match) if model.match else None,
-#             team=TeamModel.to_domain(model.team) if model.team else None,
-#             created_at=model.created_at,
-#             updated_at=model.updated_at,
-#         )
+        return Match(
+            id=model.id,
+            tournament_id=model.tournament_id,
+            status=MatchStatus(model.status),
+            round=model.round,
+            participants=[MatchTeamModel.to_domain(p) for p in model.participants]
+            if include_teams and participants_loaded
+            else [],
+            player_performances=[
+                MatchPlayerModel.to_domain(p) for p in model.player_performances
+            ]
+            if include_players and performances_loaded
+            else [],
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+        )
 
 
-# class MatchPlayerModel(Base):
-#     """
-#     Join table between matches and players (per-match individual performance).
-#     Composite PK: (match_id, player_id).
-#     """
+class MatchTeamModel(Base):
+    """
+    Join table between matches and teams (per-match results).
+    Composite PK: (match_id, team_id).
+    """
 
-#     __tablename__ = "match_players"
+    __tablename__ = "match_teams"
 
-#     match_id: Mapped[uuid.UUID] = mapped_column(
-#         Uuid,
-#         ForeignKey("matches.id", ondelete="CASCADE"),
-#         primary_key=True,
-#     )
-#     player_id: Mapped[uuid.UUID] = mapped_column(
-#         Uuid,
-#         ForeignKey("players.id", ondelete="CASCADE"),
-#         primary_key=True,
-#     )
-#     rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
-#     score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-#     kills: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-#     deaths: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-#     assists: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    match_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        ForeignKey("matches.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        ForeignKey("teams.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    kills: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    deaths: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    assists: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
-#     # relationships
-#     match: Mapped[MatchModel] = relationship(
-#         "MatchModel", back_populates="player_performances"
-#     )
-#     player: Mapped[PlayerModel] = relationship(
-#         "PlayerModel", back_populates="match_performances"
-#     )
+    # relationships
+    match: Mapped[MatchModel] = relationship(
+        "MatchModel", back_populates="participants"
+    )
+    team: Mapped[TeamModel] = relationship(
+        "TeamModel", back_populates="match_participations"
+    )
 
-#     def __repr__(self) -> str:
-#         return f"<MatchPlayerModel match={self.match_id} player={self.player_id} score={self.score} rank={self.rank}>"
+    def __repr__(self) -> str:
+        return f"<MatchTeamModel match={self.match_id} team={self.team_id} rank={self.rank}>"
 
-#     @classmethod
-#     def from_domain(cls, performance: MatchPlayer) -> MatchPlayerModel:
-#         return cls(
-#             match_id=performance.match_id,
-#             player_id=performance.player_id,
-#             rank=performance.rank,
-#             score=performance.score,
-#             kills=performance.kills,
-#             deaths=performance.deaths,
-#             assists=performance.assists,
-#             created_at=performance.created_at,
-#             updated_at=performance.updated_at,
-#         )
+    @classmethod
+    def from_domain(cls, participation: MatchTeam) -> MatchTeamModel:
+        return cls(
+            match_id=participation.match_id,
+            team_id=participation.team_id,
+            rank=participation.rank,
+            score=participation.score,
+            kills=participation.kills,
+            deaths=participation.deaths,
+            assists=participation.assists,
+            created_at=participation.created_at,
+            updated_at=participation.updated_at,
+        )
 
-#     @classmethod
-#     def to_domain(cls, model: MatchPlayerModel) -> MatchPlayer:
-#         return MatchPlayer(
-#             match_id=model.match_id,
-#             player_id=model.player_id,
-#             rank=model.rank,
-#             score=model.score,
-#             kills=model.kills,
-#             deaths=model.deaths,
-#             assists=model.assists,
-#             match=MatchModel.to_domain(model.match) if model.match else None,
-#             player=PlayerModel.to_domain(model.player) if model.player else None,
-#             created_at=model.created_at,
-#             updated_at=model.updated_at,
-#         )
+    @classmethod
+    def to_domain(
+        cls,
+        model: MatchTeamModel,
+        include_team: bool = True,
+        include_match: bool = True,
+    ) -> MatchTeam:
+        state = sa_inspect(model)
+        match_loaded = "match" not in state.unloaded
+        team_loaded = "team" not in state.unloaded
+
+        return MatchTeam(
+            match_id=model.match_id,
+            team_id=model.team_id,
+            rank=model.rank,
+            score=model.score,
+            kills=model.kills,
+            deaths=model.deaths,
+            assists=model.assists,
+            match=MatchModel.to_domain(model.match)
+            if include_match and match_loaded
+            else None,
+            team=TeamModel.to_domain(model.team)
+            if include_team and team_loaded
+            else None,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+        )
+
+
+class MatchPlayerModel(Base):
+    """
+    Join table between matches and players (per-match individual performance).
+    Composite PK: (match_id, player_id).
+    """
+
+    __tablename__ = "match_players"
+
+    match_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        ForeignKey("matches.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    player_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        ForeignKey("players.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    kills: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    deaths: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    assists: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    # relationships
+    match: Mapped[MatchModel] = relationship(
+        "MatchModel", back_populates="player_performances"
+    )
+    player: Mapped[PlayerModel] = relationship(
+        "PlayerModel", back_populates="match_performances"
+    )
+
+    def __repr__(self) -> str:
+        return f"<MatchPlayerModel match={self.match_id} player={self.player_id} score={self.score} rank={self.rank}>"
+
+    @classmethod
+    def from_domain(cls, performance: MatchPlayer) -> MatchPlayerModel:
+        return cls(
+            match_id=performance.match_id,
+            player_id=performance.player_id,
+            rank=performance.rank,
+            score=performance.score,
+            kills=performance.kills,
+            deaths=performance.deaths,
+            assists=performance.assists,
+            created_at=performance.created_at,
+            updated_at=performance.updated_at,
+        )
+
+    @classmethod
+    def to_domain(
+        cls,
+        model: MatchPlayerModel,
+        include_match: bool = True,
+        include_player: bool = True,
+    ) -> MatchPlayer:
+        state = sa_inspect(model)
+        match_loaded = "match" not in state.unloaded
+        player_loaded = "player" not in state.unloaded
+
+        return MatchPlayer(
+            match_id=model.match_id,
+            player_id=model.player_id,
+            rank=model.rank,
+            score=model.score,
+            kills=model.kills,
+            deaths=model.deaths,
+            assists=model.assists,
+            match=MatchModel.to_domain(model.match)
+            if include_match and match_loaded
+            else None,
+            player=PlayerModel.to_domain(model.player)
+            if include_player and player_loaded
+            else None,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+        )

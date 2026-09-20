@@ -12,6 +12,7 @@ from src.domain.entities.tournaments import (
     TournamentTeam,
 )
 from src.domain.repositories.tournaments_repository import AbstractTournamentRepository
+from src.domain.services.tournament_ranking_service import TournamentStanding
 from src.domain.utils.enums import TournamentStatus
 from src.infrastructure.database.models import (
     TeamModel,
@@ -112,6 +113,31 @@ class SqlTournamentRepository(
         await self.session.merge(model)
         await self.session.flush()
         await self.session.refresh(model)
+        return self.to_domain(model)
+
+    async def complete_tournament(
+        self,
+        tournament_id: uuid.UUID,
+        standings: dict[uuid.UUID, TournamentStanding],
+    ) -> Tournament:
+        query = (
+            select(TournamentModel)
+            .where(TournamentModel.id == tournament_id)
+            .options(*self.load_options)
+        )
+        result = await self.session.execute(query)
+        model = result.scalar_one()
+        model.status = TournamentStatus.COMPLETED.value
+
+        for membership in model.registered_teams:
+            standing = standings[membership.team_id]
+            membership.rank = standing.rank
+            membership.score = standing.points
+            membership.wins = standing.wins
+            membership.losses = standing.losses
+            membership.draws = standing.draws
+
+        await self.session.flush()
         return self.to_domain(model)
 
     async def save_tournament_membership(

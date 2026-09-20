@@ -1,5 +1,6 @@
 import uuid
 from abc import abstractmethod
+from typing import TYPE_CHECKING
 
 from src.domain.entities.tournaments import (
     Tournament,
@@ -8,6 +9,9 @@ from src.domain.entities.tournaments import (
     TournamentTeam,
 )
 from src.domain.repositories.base_repository import AbstractRepository
+
+if TYPE_CHECKING:
+    from src.domain.services.tournament_ranking_service import TournamentStanding
 
 
 class AbstractTournamentRepository(
@@ -23,6 +27,13 @@ class AbstractTournamentRepository(
 
     @abstractmethod
     async def start_tournament(self, tournament_id: uuid.UUID) -> Tournament: ...
+
+    @abstractmethod
+    async def complete_tournament(
+        self,
+        tournament_id: uuid.UUID,
+        standings: dict[uuid.UUID, "TournamentStanding"],
+    ) -> Tournament: ...
 
     @abstractmethod
     async def save_tournament_membership(

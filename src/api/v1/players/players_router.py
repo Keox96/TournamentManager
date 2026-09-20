@@ -2,14 +2,13 @@
 FastAPI module for player endpoints and schemas.
 """
 
-from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, status
 
 from src.api.base_schema import PaginatedResponse, PaginationQuery, SearchQuery
 from src.api.dependencies import DbSession
-from src.api.exception_schema import ErrorResponse
+from src.api.exception_schema import COMMON_RESPONSES
 from src.api.v1.players.players_schema import (
     PlayerCreateRequest,
     PlayerFiltersQuery,
@@ -22,18 +21,10 @@ from src.infrastructure.database.repositories.players_repository import (
     SqlPlayerRepository,
 )
 
-common_responses: dict[int | str, dict[str, Any]] = {
-    status.HTTP_400_BAD_REQUEST: {"model": ErrorResponse},
-    status.HTTP_401_UNAUTHORIZED: {"model": ErrorResponse},
-    status.HTTP_409_CONFLICT: {"model": ErrorResponse},
-    status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ErrorResponse},
-    status.HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponse},
-}
-
 player_router = APIRouter(
     prefix="/players",
     tags=["players"],
-    responses=common_responses,
+    responses=COMMON_RESPONSES,
 )
 
 

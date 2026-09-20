@@ -5,14 +5,16 @@ Domain entity definitions for the tournament manager.
 from __future__ import annotations
 
 from dataclasses import KW_ONLY, dataclass, field
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from src.domain.entities import BaseEntity
 from src.domain.exceptions.generic_exceptions import EntityValidationError
-from src.domain.utils.enums import MatchStatus
+from src.domain.utils.enums import MatchStatus as MatchStatus
 
 if TYPE_CHECKING:
     import uuid
+    from datetime import datetime
 
     from src.domain.entities.players import Player
     from src.domain.entities.teams import Team
@@ -28,6 +30,9 @@ class MatchTeam(BaseEntity):
     match_id: uuid.UUID
     team_id: uuid.UUID
     score: int = 0
+    kills: int = 0
+    deaths: int = 0
+    assists: int = 0
     rank: int | None = None
     match: Match | None = None
     team: Team | None = None
@@ -36,8 +41,9 @@ class MatchTeam(BaseEntity):
         """
         Validate and normalize object state after initialization.
         """
-        if self.score < 0:
-            raise EntityValidationError(message="score cannot be negative")
+        for attr in ("score", "kills", "deaths", "assists"):
+            if getattr(self, attr) < 0:
+                raise EntityValidationError(message=f"{attr} cannot be negative")
 
 
 @dataclass
@@ -102,4 +108,30 @@ class Match(BaseEntity):
         """
         if self.status != MatchStatus.COMPLETED:
             return None
-        return next((p for p in self.participants if p.rank == 1), None)
+        winners = [p for p in self.participants if p.rank == 1]
+        return winners[0] if len(winners) == 1 else None
+
+
+class MatchSortField(StrEnum):
+    """
+    Enumeration of valid match sort values.
+    """
+
+    CREATED_AT = "created_at"
+    START_DATE = "start_date"
+    STATUS = "status"
+
+
+@dataclass
+class MatchFilters:
+    """
+    Filter container for match.
+    """
+
+    tournament_id: int | None = None
+    round: int | None = None
+    status: MatchStatus | None = None
+    start_date_from: datetime | None = None
+    start_date_to: datetime | None = None
+    created_at_from: datetime | None = None
+    created_at_to: datetime | None = None

@@ -2,14 +2,14 @@
 FastAPI module for team endpoints and schemas.
 """
 
-from typing import Annotated, Any
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Path, status
 
 from src.api.base_schema import PaginatedResponse, PaginationQuery, SearchQuery
 from src.api.dependencies import DbSession
-from src.api.exception_schema import ErrorResponse
+from src.api.exception_schema import COMMON_RESPONSES
 from src.api.v1.teams.teams_schema import (
     TeamAddMemberRequest,
     TeamCreateRequest,
@@ -26,18 +26,10 @@ from src.infrastructure.database.repositories.players_repository import (
 )
 from src.infrastructure.database.repositories.teams_repository import SqlTeamRepository
 
-common_responses: dict[int | str, dict[str, Any]] = {
-    status.HTTP_400_BAD_REQUEST: {"model": ErrorResponse},
-    status.HTTP_401_UNAUTHORIZED: {"model": ErrorResponse},
-    status.HTTP_409_CONFLICT: {"model": ErrorResponse},
-    status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ErrorResponse},
-    status.HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponse},
-}
-
 team_router = APIRouter(
     prefix="/teams",
     tags=["teams"],
-    responses=common_responses,
+    responses=COMMON_RESPONSES,
 )
 
 

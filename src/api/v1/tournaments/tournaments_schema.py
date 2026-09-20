@@ -129,7 +129,7 @@ class TournamentResponse(BaseModel):
         None, description="Last update date of the tournament"
     )
     registered_teams: list[TournamentTeamResponse] | None
-    # matches: list[UUID] | None
+    # matches: list[MatchResponse] | None
 
     @classmethod
     def from_domain(cls, tournament: Tournament) -> "TournamentResponse":

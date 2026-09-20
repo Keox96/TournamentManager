@@ -56,3 +56,7 @@ class TournamentTeamResponse(BaseModel):
             created_at=tournament_team.created_at,
             updated_at=tournament_team.updated_at,
         )
+
+class MatchTeamResponse(BaseModel):...
+
+class MatchPlayerResponse(BaseModel):...

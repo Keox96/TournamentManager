@@ -9,6 +9,7 @@ from src.domain.exceptions.tournaments_exceptions import (
     TournamentAlreadyExistsError,
     TournamentAlreadyStartedError,
     TournamentNotDraftError,
+    TournamentNotEnoughTeams,
     TournamentNotFoundError,
 )
 from src.domain.repositories.filters import PaginationParams, SearchParams, SortParams
@@ -121,4 +122,6 @@ class TournamentService:
                     "status": tournament_in_db.status.value,
                 }
             )
+        if len(tournament_in_db.registered_teams) == 1:
+            raise TournamentNotEnoughTeams(details={"tournament_id": tournament_in_db.id})
         return await self.repository.start_tournament(tournament_id)

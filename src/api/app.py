@@ -14,6 +14,7 @@ from src.api.exception_handlers import (
     validation_exception_handler,
 )
 from src.api.v1.players.players_router import player_router
+from src.api.v1.matchs.matchs_router import match_router
 from src.api.v1.teams.teams_router import team_router
 from src.api.v1.tournaments.tournaments_router import tournament_router
 from src.config import settings
@@ -68,3 +69,4 @@ app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.include_router(tournament_router, prefix=settings.API_PREFIX)
 app.include_router(player_router, prefix=settings.API_PREFIX)
 app.include_router(team_router, prefix=settings.API_PREFIX)
+app.include_router(match_router, prefix=settings.API_PREFIX)

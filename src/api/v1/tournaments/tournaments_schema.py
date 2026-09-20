@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from src.api.base_schema import BaseSortRequest
 from src.api.shared_schema import TournamentTeamResponse
+from src.api.v1.matchs.matchs_schema import MatchResponse
 from src.domain.entities.tournaments import (
     Tournament,
     TournamentFilters,
@@ -129,7 +130,7 @@ class TournamentResponse(BaseModel):
         None, description="Last update date of the tournament"
     )
     registered_teams: list[TournamentTeamResponse] | None
-    # matches: list[UUID] | None
+    # matches: list[MatchResponse] | None
 
     @classmethod
     def from_domain(cls, tournament: Tournament) -> "TournamentResponse":

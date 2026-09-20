@@ -4,6 +4,7 @@ FastAPI API module.
 
 from typing import Any
 
+from fastapi import status
 from pydantic import BaseModel, Field
 
 
@@ -25,3 +26,12 @@ class ErrorResponse(BaseModel):
     """
 
     error: APIError = Field(description="The error information")
+
+
+COMMON_RESPONSES: dict[int | str, dict[str, Any]] = {
+    status.HTTP_400_BAD_REQUEST: {"model": ErrorResponse},
+    status.HTTP_401_UNAUTHORIZED: {"model": ErrorResponse},
+    status.HTTP_409_CONFLICT: {"model": ErrorResponse},
+    status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ErrorResponse},
+    status.HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponse},
+}

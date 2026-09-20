@@ -182,3 +182,21 @@ class TournamentAlreadyStartedError(BadRequestError):
             message="Tournament has already started",
             details=details,
         )
+
+class TournamentNotEnoughTeams(BadRequestError):
+    """
+    Exception raised when tournament was requested to be started with not enough teams conditions occur.
+    """
+
+    def __init__(self, *, details: dict[str, Any] | None = None):
+        """
+        Initialize a new init instance.
+
+        Args:
+        details: The details parameter.
+        """
+        super().__init__(
+            code=TournamentErrorCodes.TOURNAMENT_NOT_ENOUGH_TEAMS,
+            message=f"Tournament '{details['tournament_id']}' was requested to be started with not enough teams",
+            details=details,
+        )

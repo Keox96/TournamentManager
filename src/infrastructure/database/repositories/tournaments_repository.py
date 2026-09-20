@@ -114,6 +114,29 @@ class SqlTournamentRepository(
         await self.session.refresh(model)
         return self.to_domain(model)
 
+    async def complete_tournament(
+        self, tournament_id: uuid.UUID, standings
+    ) -> Tournament:
+        query = (
+            select(TournamentModel)
+            .where(TournamentModel.id == tournament_id)
+            .options(*self.load_options)
+        )
+        result = await self.session.execute(query)
+        model = result.scalar_one()
+        model.status = TournamentStatus.COMPLETED.value
+
+        for membership in model.registered_teams:
+            standing = standings[membership.team_id]
+            membership.rank = standing.rank
+            membership.score = standing.points
+            membership.wins = standing.wins
+            membership.losses = standing.losses
+            membership.draws = standing.draws
+
+        await self.session.flush()
+        return self.to_domain(model)
+
     async def save_tournament_membership(
         self, tournament_membership: TournamentTeam
     ) -> Tournament:

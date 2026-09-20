@@ -1,11 +1,10 @@
-from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, status
 
 from src.api.base_schema import PaginatedResponse, PaginationQuery, SearchQuery
 from src.api.dependencies import DbSession
-from src.api.exception_schema import ErrorResponse
+from src.api.exception_schema import COMMON_RESPONSES
 from src.api.v1.tournaments.tournaments_schema import (
     AddTeamTournamentRequest,
     TournamentCreateRequest,
@@ -14,25 +13,19 @@ from src.api.v1.tournaments.tournaments_schema import (
     TournamentSortQuery,
     TournamentUpdateRequest,
 )
+from src.domain.services.matchs_service import MatchService
 from src.domain.services.tournament_teams_service import TournamentTeamService
 from src.domain.services.tournaments_service import TournamentService
+from src.infrastructure.database.repositories.matchs_repository import SqlMatchRepository
 from src.infrastructure.database.repositories.teams_repository import SqlTeamRepository
 from src.infrastructure.database.repositories.tournaments_repository import (
     SqlTournamentRepository,
 )
 
-common_responses: dict[int | str, dict[str, Any]] = {
-    status.HTTP_400_BAD_REQUEST: {"model": ErrorResponse},
-    status.HTTP_401_UNAUTHORIZED: {"model": ErrorResponse},
-    status.HTTP_409_CONFLICT: {"model": ErrorResponse},
-    status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ErrorResponse},
-    status.HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponse},
-}
-
 tournament_router = APIRouter(
     prefix="/tournaments",
     tags=["tournaments"],
-    responses=common_responses,
+    responses=COMMON_RESPONSES,
 )
 
 
@@ -221,6 +214,7 @@ async def open_tournament(
     return TournamentResponse.from_domain(tournament)
 
 
+# Add team to a tournament
 @tournament_router.post(
     "/teams",
     status_code=status.HTTP_201_CREATED,
@@ -239,6 +233,7 @@ async def add_team_to_tournament(
     return TournamentResponse.from_domain(tournament)
 
 
+# remove team from a tournament
 @tournament_router.delete(
     "{tournament_id}/teams/{team_id}",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -256,3 +251,40 @@ async def remove_team_to_tournament(
     await service.remove_team_from_tournament(
         tournament_id=tournament_id, team_id=team_id
     )
+
+#Start a tournament
+# Open tournament
+@tournament_router.post(
+    "/{tournament_id}/start",
+    status_code=status.HTTP_201_CREATED,
+)
+async def start_tournament(
+    tournament_id: UUID,
+    session: DbSession,
+) -> TournamentResponse:
+    """
+    Start a tournament by its ID.
+
+    Args:
+        tournament_id: The unique identifier of the tournament to start.
+        session: Database session.
+
+    Returns:
+        TournamentResponse: The details of the opened tournament.
+
+    Raises:
+        TournamentNotFoundError: If the tournament is not found.
+        TournamentAlreadyOpenedError: If the tournament is already opened.
+        TournamentAlreadyStartedError: If the tournament is already started.
+    """
+    # On passe le tournoi en status IN_PROGRESS
+    tournament_repository = SqlTournamentRepository(session)
+    tournament_service = TournamentService(tournament_repository)
+    tournament = await tournament_service.start_tournament(tournament_id)
+    # On génère tous les matchs
+    match_repository = SqlMatchRepository(session)
+    match_service = MatchService(match_repository, tournament_repository)
+    tournament = await match_service.generate_matchs(tournament)
+    # On récupère le tournoi actualisé avec tous ses matchs
+    tournament_updated = await tournament_service.get_tournament_by_id(tournament_id=tournament.id)
+    return TournamentResponse.from_domain(tournament_updated)

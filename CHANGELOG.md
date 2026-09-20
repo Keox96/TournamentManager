@@ -2,6 +2,20 @@
 
 <!-- version list -->
 
+## v1.7.0 (2026-09-20)
+
+### Bug Fixes
+
+- Get correct score for each player and teams
+  ([#13](https://github.com/Keox96/TournamentManager/pull/13),
+  [`20c2064`](https://github.com/Keox96/TournamentManager/commit/20c2064a9b911dadb8333d842bf0935ef1d176a8))
+
+### Features
+
+- **TM-12**: Add match management ([#13](https://github.com/Keox96/TournamentManager/pull/13),
+  [`20c2064`](https://github.com/Keox96/TournamentManager/commit/20c2064a9b911dadb8333d842bf0935ef1d176a8))
+
+
 ## v1.6.0 (2026-04-18)
 
 ### Continuous Integration

@@ -593,6 +593,9 @@ class MatchTeamModel(Base):
     )
     rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
     score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    kills: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    deaths: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    assists: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     # relationships
     match: Mapped[MatchModel] = relationship(
@@ -612,6 +615,9 @@ class MatchTeamModel(Base):
             team_id=participation.team_id,
             rank=participation.rank,
             score=participation.score,
+            kills=participation.kills,
+            deaths=participation.deaths,
+            assists=participation.assists,
             created_at=participation.created_at,
             updated_at=participation.updated_at,
         )
@@ -632,6 +638,9 @@ class MatchTeamModel(Base):
             team_id=model.team_id,
             rank=model.rank,
             score=model.score,
+            kills=model.kills,
+            deaths=model.deaths,
+            assists=model.assists,
             match=MatchModel.to_domain(model.match)
             if include_match and match_loaded
             else None,

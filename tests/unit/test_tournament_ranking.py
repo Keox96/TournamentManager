@@ -25,7 +25,11 @@ def _match(
                 match_id=match_id,
                 team_id=first_team,
                 score=first_score,
-                rank=1 if first_score > second_score else 1 if first_score == second_score else 2,
+                rank=1
+                if first_score > second_score
+                else 1
+                if first_score == second_score
+                else 2,
                 created_at=datetime.now(),
                 updated_at=None,
             ),

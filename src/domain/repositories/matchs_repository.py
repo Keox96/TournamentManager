@@ -16,9 +16,7 @@ from src.domain.repositories.base_repository import AbstractRepository
 from src.domain.utils.enums import MatchStatus
 
 
-class AbstractMatchRepository(
-    AbstractRepository[Match, MatchFilters, MatchSortField]
-):
+class AbstractMatchRepository(AbstractRepository[Match, MatchFilters, MatchSortField]):
     @abstractmethod
     async def create_match(self, match: Match) -> Match: ...
 
@@ -44,7 +42,7 @@ class AbstractMatchRepository(
     async def save_match_result(
         self,
         match_id: uuid.UUID,
-        team_scores: dict[uuid.UUID, int],
+        team_results: dict[uuid.UUID, MatchTeam],
         player_scores: dict[uuid.UUID, MatchPlayer],
     ) -> Match | None: ...
 

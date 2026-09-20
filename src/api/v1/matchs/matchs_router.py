@@ -6,13 +6,17 @@ from fastapi import APIRouter, HTTPException, status
 from src.api.dependencies import DbSession
 from src.api.exception_schema import COMMON_RESPONSES
 from src.api.v1.matchs.matchs_schema import (
-    MatchResultRequest,
     MatchResponse,
+    MatchResultRequest,
 )
 from src.domain.entities.matchs import MatchPlayer
 from src.domain.services.matchs_service import MatchService
-from src.infrastructure.database.repositories.matchs_repository import SqlMatchRepository
-from src.infrastructure.database.repositories.tournaments_repository import SqlTournamentRepository
+from src.infrastructure.database.repositories.matchs_repository import (
+    SqlMatchRepository,
+)
+from src.infrastructure.database.repositories.tournaments_repository import (
+    SqlTournamentRepository,
+)
 
 MATCH_NOT_FOUND = "Match not found"
 
@@ -48,7 +52,9 @@ async def list_next_tournament_matches(
     tournament_repository = SqlTournamentRepository(session)
     tournament = await tournament_repository.get_by_id(tournament_id)
     if tournament is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tournament not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Tournament not found"
+        )
 
     service = MatchService(SqlMatchRepository(session), tournament_repository)
     matches = await service.get_next_matches(tournament)
@@ -63,7 +69,9 @@ async def get_match(match_id: UUID, session: DbSession) -> MatchResponse:
     repository = SqlMatchRepository(session)
     match = await repository.get_by_id(match_id)
     if match is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=MATCH_NOT_FOUND)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=MATCH_NOT_FOUND
+        )
     return MatchResponse.from_domain(match)
 
 
@@ -96,7 +104,7 @@ async def complete_match(
     try:
         match = await service.complete_match(
             match_id,
-            {result.team_id: result.score for result in request.teams},
+            {result.team_id for result in request.teams},
             player_scores,
         )
     except ValueError as exc:

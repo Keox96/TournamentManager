@@ -12,7 +12,6 @@ from pydantic import BaseModel, Field
 
 from src.api.base_schema import BaseSortRequest
 from src.api.shared_schema import TournamentTeamResponse
-from src.api.v1.matchs.matchs_schema import MatchResponse
 from src.domain.entities.tournaments import (
     Tournament,
     TournamentFilters,

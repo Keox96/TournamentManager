@@ -1,5 +1,3 @@
-
-
 import uuid
 from datetime import datetime
 
@@ -13,6 +11,9 @@ class MatchTeamResponse(BaseModel):
     match_id: uuid.UUID
     team_id: uuid.UUID
     score: int = 0
+    kills: int = 0
+    deaths: int = 0
+    assists: int = 0
     rank: int | None = None
     created_at: datetime
     updated_at: datetime | None = None
@@ -23,6 +24,9 @@ class MatchTeamResponse(BaseModel):
             match_id=participation.match_id,
             team_id=participation.team_id,
             score=participation.score,
+            kills=participation.kills,
+            deaths=participation.deaths,
+            assists=participation.assists,
             rank=participation.rank,
             created_at=participation.created_at,
             updated_at=participation.updated_at,
@@ -84,13 +88,14 @@ class MatchResponse(BaseModel):
             status=match.status,
             round=match.round,
             participants=[MatchTeamResponse.from_domain(p) for p in match.participants],
-            player_performances=[MatchPlayerResponse.from_domain(pl) for pl in match.player_performances],
+            player_performances=[
+                MatchPlayerResponse.from_domain(pl) for pl in match.player_performances
+            ],
         )
 
 
 class TeamMatchResultRequest(BaseModel):
     team_id: uuid.UUID
-    score: int = Field(..., ge=0)
 
 
 class PlayerMatchResultRequest(BaseModel):

@@ -183,7 +183,8 @@ class TournamentAlreadyStartedError(BadRequestError):
             details=details,
         )
 
-class TournamentNotEnoughTeams(BadRequestError):
+
+class TournamentNotEnoughTeamsError(BadRequestError):
     """
     Exception raised when tournament was requested to be started with not enough teams conditions occur.
     """
@@ -195,8 +196,14 @@ class TournamentNotEnoughTeams(BadRequestError):
         Args:
         details: The details parameter.
         """
+        tournament_id = (
+            details.get("tournament_id", "unknown") if details else "unknown"
+        )
         super().__init__(
             code=TournamentErrorCodes.TOURNAMENT_NOT_ENOUGH_TEAMS,
-            message=f"Tournament '{details['tournament_id']}' was requested to be started with not enough teams",
+            message=f"Tournament '{tournament_id}' was requested to be started with not enough teams",
             details=details,
         )
+
+
+TournamentNotEnoughTeams = TournamentNotEnoughTeamsError

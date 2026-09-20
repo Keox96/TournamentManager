@@ -123,5 +123,7 @@ class TournamentService:
                 }
             )
         if len(tournament_in_db.registered_teams) == 1:
-            raise TournamentNotEnoughTeams(details={"tournament_id": tournament_in_db.id})
+            raise TournamentNotEnoughTeams(
+                details={"tournament_id": tournament_in_db.id}
+            )
         return await self.repository.start_tournament(tournament_id)

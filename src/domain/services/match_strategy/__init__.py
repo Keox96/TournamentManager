@@ -1,3 +1,4 @@
+from src.domain.services.match_strategy.base import AbstractMatchStrategy
 from src.domain.services.match_strategy.double_elimination import (
     DoubleEliminationMatchStrategy,
 )
@@ -8,7 +9,7 @@ from src.domain.services.match_strategy.single_elimination import (
 from src.domain.services.match_strategy.swiss import SwissMatchStrategy
 from src.domain.utils.enums import TournamentMode
 
-STRATEGIES = {
+STRATEGIES: dict[TournamentMode, type[AbstractMatchStrategy]] = {
     TournamentMode.SINGLE_ELIMINATION: SingleEliminationMatchStrategy,
     TournamentMode.DOUBLE_ELIMINATION: DoubleEliminationMatchStrategy,
     TournamentMode.ROUND_ROBIN: RoundRobinMatchStrategy,
@@ -16,7 +17,7 @@ STRATEGIES = {
 }
 
 
-def get_match_strategy(mode: TournamentMode):
+def get_match_strategy(mode: TournamentMode) -> AbstractMatchStrategy:
     """Return the strategy class matching the tournament mode."""
     try:
         return STRATEGIES[mode]()

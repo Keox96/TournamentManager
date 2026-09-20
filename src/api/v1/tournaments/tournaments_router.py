@@ -16,7 +16,9 @@ from src.api.v1.tournaments.tournaments_schema import (
 from src.domain.services.matchs_service import MatchService
 from src.domain.services.tournament_teams_service import TournamentTeamService
 from src.domain.services.tournaments_service import TournamentService
-from src.infrastructure.database.repositories.matchs_repository import SqlMatchRepository
+from src.infrastructure.database.repositories.matchs_repository import (
+    SqlMatchRepository,
+)
 from src.infrastructure.database.repositories.teams_repository import SqlTeamRepository
 from src.infrastructure.database.repositories.tournaments_repository import (
     SqlTournamentRepository,
@@ -252,7 +254,8 @@ async def remove_team_to_tournament(
         tournament_id=tournament_id, team_id=team_id
     )
 
-#Start a tournament
+
+# Start a tournament
 # Open tournament
 @tournament_router.post(
     "/{tournament_id}/start",
@@ -286,5 +289,7 @@ async def start_tournament(
     match_service = MatchService(match_repository, tournament_repository)
     tournament = await match_service.generate_matchs(tournament)
     # On récupère le tournoi actualisé avec tous ses matchs
-    tournament_updated = await tournament_service.get_tournament_by_id(tournament_id=tournament.id)
+    tournament_updated = await tournament_service.get_tournament_by_id(
+        tournament_id=tournament.id
+    )
     return TournamentResponse.from_domain(tournament_updated)

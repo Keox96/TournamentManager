@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from uuid import UUID
+from typing import TYPE_CHECKING
 
-from src.domain.entities.matchs import Match
-from src.domain.entities.tournaments import Tournament
 from src.domain.utils.enums import MatchStatus, TournamentMode
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from uuid import UUID
+
+    from src.domain.entities.matchs import Match
+    from src.domain.entities.tournaments import Tournament
 
 
 @dataclass
@@ -68,7 +73,9 @@ class TournamentRankingService:
             standing = standings[participant.team_id]
             standing.score_for += participant.score
             standing.score_against += sum(
-                other.score for other in participants if other.team_id != participant.team_id
+                other.score
+                for other in participants
+                if other.team_id != participant.team_id
             )
 
         if len(participants) == 2:
@@ -102,19 +109,17 @@ class TournamentRankingService:
         TournamentRankingService._rank_final(standings, final)
 
         max_round = max(match.round for match in matches)
-        TournamentRankingService._rank_eliminated_teams(
-            standings, matches, max_round
-        )
+        TournamentRankingService._rank_eliminated_teams(standings, matches, max_round)
 
-        next_rank = max((standing.rank for standing in standings.values()), default=0) + 1
+        next_rank = (
+            max((standing.rank for standing in standings.values()), default=0) + 1
+        )
         for standing in standings.values():
             if standing.rank == 0:
                 standing.rank = next_rank
 
     @staticmethod
-    def _rank_final(
-        standings: dict[UUID, TournamentStanding], final: Match
-    ) -> None:
+    def _rank_final(standings: dict[UUID, TournamentStanding], final: Match) -> None:
         winner = final.winner
         if winner is None:
             return
@@ -138,11 +143,14 @@ class TournamentRankingService:
     def _rank_league(
         self, standings: dict[UUID, TournamentStanding], head_to_head: bool
     ) -> None:
-        def key(standing: TournamentStanding) -> tuple:
-            direct_points = sum(
-                standings[opponent].points
-                for opponent in standing.beaten_opponents
-            ) if head_to_head else 0
+        def key(standing: TournamentStanding) -> tuple[int, int, int, int]:
+            direct_points = (
+                sum(
+                    standings[opponent].points for opponent in standing.beaten_opponents
+                )
+                if head_to_head
+                else 0
+            )
             return (
                 standing.points,
                 direct_points,
@@ -150,7 +158,9 @@ class TournamentRankingService:
                 standing.score_for,
             )
 
-        self._assign_competition_ranks(sorted(standings.values(), key=key, reverse=True), key)
+        self._assign_competition_ranks(
+            sorted(standings.values(), key=key, reverse=True), key
+        )
 
     def _rank_swiss(self, standings: dict[UUID, TournamentStanding]) -> None:
         buchholz = {
@@ -158,8 +168,12 @@ class TournamentRankingService:
             for team_id, standing in standings.items()
         }
         sonneborn = {
-            team_id: sum(standings[opponent].points for opponent in standing.beaten_opponents)
-            + sum(standings[opponent].points / 2 for opponent in standing.drawn_opponents)
+            team_id: sum(
+                standings[opponent].points for opponent in standing.beaten_opponents
+            )
+            + sum(
+                standings[opponent].points / 2 for opponent in standing.drawn_opponents
+            )
             for team_id, standing in standings.items()
         }
         ordered = sorted(
@@ -185,7 +199,10 @@ class TournamentRankingService:
         )
 
     @staticmethod
-    def _assign_competition_ranks(ordered: list[TournamentStanding], key) -> None:
+    def _assign_competition_ranks(
+        ordered: list[TournamentStanding],
+        key: Callable[[TournamentStanding], tuple[int | float, ...]],
+    ) -> None:
         previous = None
         for index, standing in enumerate(ordered, start=1):
             current = key(standing)

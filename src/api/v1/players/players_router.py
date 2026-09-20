@@ -1,6 +1,7 @@
 """
 FastAPI module for player endpoints and schemas.
 """
+
 from uuid import UUID
 
 from fastapi import APIRouter, status

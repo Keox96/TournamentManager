@@ -26,7 +26,6 @@ from src.infrastructure.database.repositories.players_repository import (
 )
 from src.infrastructure.database.repositories.teams_repository import SqlTeamRepository
 
-
 team_router = APIRouter(
     prefix="/teams",
     tags=["teams"],

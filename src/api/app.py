@@ -13,8 +13,8 @@ from src.api.exception_handlers import (
     tournament_manager_exception_handler,
     validation_exception_handler,
 )
-from src.api.v1.players.players_router import player_router
 from src.api.v1.matchs.matchs_router import match_router
+from src.api.v1.players.players_router import player_router
 from src.api.v1.teams.teams_router import team_router
 from src.api.v1.tournaments.tournaments_router import tournament_router
 from src.config import settings

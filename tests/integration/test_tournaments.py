@@ -7,11 +7,12 @@ from http import HTTPStatus
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import select, func
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from src.domain.exceptions.error_codes import GenericErrorCodes, TournamentErrorCodes
-from src.infrastructure.database.models import MatchModel
 from src.domain.utils.enums import TeamRole, TournamentMode, TournamentStatus
+from src.infrastructure.database.models import MatchModel
 
 
 class TestTournamentsCrudAPI:
@@ -23,7 +24,9 @@ class TestTournamentsCrudAPI:
 
     @pytest.mark.asyncio
     async def test_start_tournament_generates_matches(
-        self, test_client: AsyncClient, test_session_factory
+        self,
+        test_client: AsyncClient,
+        test_session_factory: async_sessionmaker[AsyncSession],
     ) -> None:
         """Starting a tournament must generate the tournament bracket and persist matches."""
         request = {
@@ -108,34 +111,39 @@ class TestTournamentsCrudAPI:
         assert len(first_round_matches) == 2
 
         for match_index, match in enumerate(first_round_matches):
+            result_payload = {
+                "teams": [
+                    {
+                        "team_id": participant["team_id"],
+                    }
+                    for participant in match["participants"]
+                ],
+                "players": [
+                    {
+                        "player_id": performance["player_id"],
+                        "score": 2 if player_index == 0 else 1,
+                        "kills": player_index + match_index,
+                        "deaths": 1,
+                        "assists": 0,
+                    }
+                    for player_index, performance in enumerate(
+                        match["player_performances"]
+                    )
+                ],
+            }
             result_response = await test_client.put(
                 f"/api/v1/matchs/{match['id']}/result",
-                json={
-                    "teams": [
-                        {
-                            "team_id": participant["team_id"],
-                            "score": 2 if participant_index == 0 else 1,
-                        }
-                        for participant_index, participant in enumerate(
-                            match["participants"]
-                        )
-                    ],
-                    "players": [
-                        {
-                            "player_id": performance["player_id"],
-                            "score": 2 if player_index == 0 else 1,
-                            "kills": player_index + match_index,
-                            "deaths": 1,
-                            "assists": 0,
-                        }
-                        for player_index, performance in enumerate(
-                            match["player_performances"]
-                        )
-                    ],
-                },
+                json=result_payload,
             )
             assert result_response.status_code == HTTPStatus.OK.value
-            assert result_response.json()["status"] == "completed"
+            result_data = result_response.json()
+            assert result_data["status"] == "completed"
+            first_team = result_data["participants"][0]
+            first_player = result_data["player_performances"][0]
+            assert first_team["score"] == first_player["score"]
+            assert first_team["kills"] == first_player["kills"]
+            assert first_team["deaths"] == first_player["deaths"]
+            assert first_team["assists"] == first_player["assists"]
 
         matches_after_round = await test_client.get(
             f"/api/v1/matchs/tournament/{tournament_id}"
@@ -160,7 +168,6 @@ class TestTournamentsCrudAPI:
                 "teams": [
                     {
                         "team_id": participant["team_id"],
-                        "score": 3 if participant_index == 0 else 0,
                     }
                     for participant_index, participant in enumerate(
                         final_match["participants"]
@@ -192,9 +199,7 @@ class TestTournamentsCrudAPI:
         assert sorted(ranks) == [1, 2, 3, 3]
 
         assert (
-            await test_client.get(
-                f"/api/v1/matchs/tournament/{tournament_id}/next"
-            )
+            await test_client.get(f"/api/v1/matchs/tournament/{tournament_id}/next")
         ).json() == []
 
         async with test_session_factory() as session:

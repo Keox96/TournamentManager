@@ -1,9 +1,10 @@
 import uuid
 from datetime import datetime
 
-from src.domain.entities.matchs import Match, MatchStatus, MatchTeam
+from src.domain.entities.matchs import Match, MatchTeam
 from src.domain.entities.tournaments import Tournament
 from src.domain.services.match_strategy.base import AbstractMatchStrategy
+from src.domain.utils.enums import MatchStatus
 
 
 class DoubleEliminationMatchStrategy(AbstractMatchStrategy):
@@ -42,9 +43,7 @@ class DoubleEliminationMatchStrategy(AbstractMatchStrategy):
                     matches.append(match)
             if len(bracket_round) % 2 != 0:
                 bracket_round = [bracket_round[0]] + bracket_round[1:]
-            bracket_round = [
-                bracket_round[i] for i in range(1, len(bracket_round), 2)
-            ]
+            bracket_round = [bracket_round[i] for i in range(1, len(bracket_round), 2)]
             round_number += 1
 
         return matches

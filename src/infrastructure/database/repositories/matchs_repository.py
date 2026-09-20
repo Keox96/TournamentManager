@@ -104,7 +104,10 @@ class SqlMatchRepository(
             self.session.add(performance_model)
 
         await self.session.flush()
-        return await self.get_by_id(model.id)
+        created_match = await self.get_by_id(model.id)
+        if created_match is None:
+            raise RuntimeError("Created match could not be loaded")
+        return created_match
 
     async def get_by_tournament(self, tournament_id: uuid.UUID) -> list[Match]:
         query = (
@@ -163,7 +166,7 @@ class SqlMatchRepository(
     async def save_match_result(
         self,
         match_id: uuid.UUID,
-        team_scores: dict[uuid.UUID, int],
+        team_results: dict[uuid.UUID, MatchTeam],
         player_scores: dict[uuid.UUID, MatchPlayer],
     ) -> Match | None:
         query = (
@@ -176,20 +179,17 @@ class SqlMatchRepository(
         if match_model is None:
             return None
 
-        participant_ids = {participant.team_id for participant in match_model.participants}
-        if set(team_scores) != participant_ids:
-            raise ValueError("A score is required for every participating team")
-
         for participant in match_model.participants:
-            participant.score = team_scores[participant.team_id]
+            team_result = team_results[participant.team_id]
+            participant.score = team_result.score
+            participant.kills = team_result.kills
+            participant.deaths = team_result.deaths
+            participant.assists = team_result.assists
 
         player_models = {
             performance.player_id: performance
             for performance in match_model.player_performances
         }
-        if set(player_scores) != set(player_models):
-            raise ValueError("A performance is required for every participating player")
-
         for player_id, performance in player_scores.items():
             model = player_models[player_id]
             model.score = performance.score

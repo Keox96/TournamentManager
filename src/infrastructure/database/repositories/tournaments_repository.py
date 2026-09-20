@@ -12,6 +12,7 @@ from src.domain.entities.tournaments import (
     TournamentTeam,
 )
 from src.domain.repositories.tournaments_repository import AbstractTournamentRepository
+from src.domain.services.tournament_ranking_service import TournamentStanding
 from src.domain.utils.enums import TournamentStatus
 from src.infrastructure.database.models import (
     TeamModel,
@@ -115,7 +116,9 @@ class SqlTournamentRepository(
         return self.to_domain(model)
 
     async def complete_tournament(
-        self, tournament_id: uuid.UUID, standings
+        self,
+        tournament_id: uuid.UUID,
+        standings: dict[uuid.UUID, TournamentStanding],
     ) -> Tournament:
         query = (
             select(TournamentModel)

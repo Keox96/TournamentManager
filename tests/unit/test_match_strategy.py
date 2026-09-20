@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
@@ -7,6 +8,9 @@ from src.domain.entities.matchs import Match, MatchStatus
 from src.domain.entities.tournaments import Tournament, TournamentTeam
 from src.domain.services.matchs_service import MatchService
 from src.domain.utils.enums import TournamentMode
+
+if TYPE_CHECKING:
+    from src.domain.repositories.matchs_repository import AbstractMatchRepository
 
 
 class _DummyRepository:
@@ -27,7 +31,9 @@ class _DummyRepository:
         (TournamentMode.SWISS, 3),
     ],
 )
-async def test_match_service_uses_mode_strategy(mode: TournamentMode, expected_match_count: int) -> None:
+async def test_match_service_uses_mode_strategy(
+    mode: TournamentMode, expected_match_count: int
+) -> None:
     teams = [
         TournamentTeam(
             tournament_id=uuid.uuid4(),
@@ -49,7 +55,9 @@ async def test_match_service_uses_mode_strategy(mode: TournamentMode, expected_m
     )
 
     repository = _DummyRepository()
-    generated = await MatchService(repository).generate_matchs(tournament)
+    generated = await MatchService(
+        cast("AbstractMatchRepository", repository)
+    ).generate_matchs(tournament)
 
     assert generated is tournament
     assert len(generated.matches) == expected_match_count
